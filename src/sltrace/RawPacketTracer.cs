@@ -1,5 +1,5 @@
 /*  SLTrace
- *  Main.cs
+ *  RawPacketTracer.cs
  *
  *  Copyright (c) 2010, Ewen Cheslack-Postava
  *  All rights reserved.
@@ -31,20 +31,31 @@
  */
 
 using System;
+using OpenMetaverse;
+using OpenMetaverse.Packets;
 
 namespace SLTrace {
 
-/** SLTrace is the main trace class -- it load configs, sets up the client
- *  connection, starts and stops logging.
- */
-class SLTrace {
-    static void Main(string[] args) {
-        Config config = new Config();
-        TraceSession session = new TraceSession(config);
+/** Records a raw packet trace. */
+class RawPacketTracer : ITracer {
+    public void StartTrace(TraceSession parent) {
+        mParent = parent;
 
-        session.AddTracer(new RawPacketTracer());
-
-        session.Run();
+        mParent.Client.Network.RegisterCallback(
+            PacketType.Default,
+            new NetworkManager.PacketCallback(this.PacketHandler)
+        );
     }
-} // class SLTrace
+
+    public void StopTrace() {
+        // No need to unregister
+    }
+
+    private void PacketHandler(Packet packet, Simulator sim) {
+        Console.WriteLine("Packet: " + packet.ToString());
+    }
+
+    private TraceSession mParent;
+} // class RawPacketTracer
+
 } // namespace SLTrace

@@ -1,5 +1,5 @@
 /*  SLTrace
- *  Main.cs
+ *  TraceSession.cs
  *
  *  Copyright (c) 2010, Ewen Cheslack-Postava
  *  All rights reserved.
@@ -32,6 +32,7 @@
 
 using System;
 using OpenMetaverse;
+using System.Collections.Generic;
 
 namespace SLTrace {
 
@@ -39,6 +40,7 @@ class TraceSession {
     public TraceSession(Config cfg) {
         mConfig = cfg;
         mClient = new GridClient();
+        mTracers = new List<ITracer>();
 
         // We turn as many things off as possible -- features are *opt in* by
         // default, meaning specific loggers must enable these features if they
@@ -49,14 +51,25 @@ class TraceSession {
         mClient.Throttle.Land = 0;
         mClient.Throttle.Texture = 0;
         mClient.Throttle.Wind = 0;
+
+        // Set up our session management callbacks
+        mClient.Network.OnConnected += new NetworkManager.ConnectedCallback(this.ConnectHandler);
+        mClient.Network.OnDisconnected += new NetworkManager.DisconnectedCallback(this.DisconnectHandler);
+    }
+
+    public GridClient Client {
+        get { return mClient; }
+    }
+
+    public void AddTracer(ITracer tr) {
+        if (tr != null)
+            mTracers.Add(tr);
     }
 
     public void Run() {
-        mClient.Network.OnConnected += new NetworkManager.ConnectedCallback(
-            delegate(object sender) {
-                Console.WriteLine("I'm connected to the simulator");
-            }
-        );
+        // Notify all ITracers of start
+        foreach(ITracer tr in mTracers)
+            tr.StartTrace(this);
 
         var logged_in = mClient.Network.Login(
             mConfig.FirstName, mConfig.LastName, mConfig.Password,
@@ -65,13 +78,8 @@ class TraceSession {
 
         Console.WriteLine("Login message: " + mClient.Network.LoginMessage);
 
-        if (!logged_in) {
-            Console.WriteLine("press enter to close...");
-            Console.ReadLine();
+        if (!logged_in)
             return;
-        }
-
-        Console.WriteLine("I logged into Second Life!");
 
         // Sleep for the specified duration, async callbacks do all the real
         // work.
@@ -81,13 +89,26 @@ class TraceSession {
             if (DateTime.Now - start > mConfig.Duration)
                 break;
         }
+
+        // Notify all ITracers of start
+        foreach(ITracer tr in mTracers)
+            tr.StopTrace();
+
         // And logout...
         mClient.Network.Logout();
     }
 
+    private void ConnectHandler(object sender) {
+        Console.WriteLine("I'm connected to the simulator");
+    }
+
+    private void DisconnectHandler(NetworkManager.DisconnectType type, string message) {
+        Console.WriteLine("Got disconnected from sim: " + message);
+    }
+
     private Config mConfig;
     private GridClient mClient;
-
+    private List<ITracer> mTracers;
 } // class TraceSession
 
 } // namespace SLTrace

@@ -1,5 +1,5 @@
 /*  SLTrace
- *  Main.cs
+ *  ITracer.cs
  *
  *  Copyright (c) 2010, Ewen Cheslack-Postava
  *  All rights reserved.
@@ -34,17 +34,22 @@ using System;
 
 namespace SLTrace {
 
-/** SLTrace is the main trace class -- it load configs, sets up the client
- *  connection, starts and stops logging.
+/** Interface for Tracer elements, which register with the TraceSession, hook
+ *  into the client, and log trace data.
  */
-class SLTrace {
-    static void Main(string[] args) {
-        Config config = new Config();
-        TraceSession session = new TraceSession(config);
+interface ITracer {
 
-        session.AddTracer(new RawPacketTracer());
+    /** Invoked once when the parent TraceSession is setup but before
+     * connections start.  ITracers should make any adjustments they need and
+     * register any delegates that will be used for tracing.
+     */
+    void StartTrace(TraceSession parent);
 
-        session.Run();
-    }
-} // class SLTrace
+    /** Called once before shutdown.  Gives the ITracer a chance to cleanup and
+     *  flush data.  At this point the connection may have been closed.
+     */
+    void StopTrace();
+
+} // interface ITracer
+
 } // namespace SLTrace
