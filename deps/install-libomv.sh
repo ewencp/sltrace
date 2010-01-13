@@ -10,6 +10,4 @@ nant
 cd ..
 
 # "install" process
-rm -rf installed-libomv
-mkdir installed-libomv
-cp -r libomv/bin/ installed-libomv
+cp -r libomv/bin/* ../bin/
