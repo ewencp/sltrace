@@ -45,6 +45,7 @@ class Config {
         mFirstName = "";
         mLastName = "";
         mPassword = "";
+        mDuration = TimeSpan.FromSeconds(30);
     }
 
     public string FirstName {
@@ -57,6 +58,11 @@ class Config {
 
     public string Password {
         get { return mPassword; }
+    }
+
+    /** Duration of the trace session. */
+    public TimeSpan Duration {
+        get { return mDuration; }
     }
 
     public static string UserAgent {
@@ -88,6 +94,7 @@ class Config {
     private string mFirstName;
     private string mLastName;
     private string mPassword;
+    private TimeSpan mDuration;
 } // class Config
 
 } // namespace SLTrace

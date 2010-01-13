@@ -31,7 +31,6 @@
  */
 
 using System;
-using OpenMetaverse;
 
 namespace SLTrace {
 
@@ -39,34 +38,10 @@ namespace SLTrace {
  *  connection, starts and stops logging.
  */
 class SLTrace {
-    public static GridClient Client = new GridClient();
-
-    private static Config config;
-
     static void Main(string[] args) {
-        config = new Config();
-
-        Client.Network.OnConnected += new NetworkManager.ConnectedCallback(Network_OnConnected);
-
-        var logged_in = Client.Network.Login(config.FirstName, config.LastName, config.Password, Config.UserAgent, Config.UserVersion);
-
-        if (!logged_in) {
-            Console.WriteLine("I couldn't log in, here is why: " + Client.Network.LoginMessage);
-            Console.WriteLine("press enter to close...");
-            Console.ReadLine();
-            return;
-        }
-
-        Console.WriteLine("I logged into Second Life!");
-    }
-
-    static void Network_OnConnected(object sender) {
-        Console.WriteLine("I'm connected to the simulator, going to greet everyone around me");
-        Client.Self.Chat("Hello World!", 0, ChatType.Normal);
-        Console.WriteLine("Now I am going to logout of SL.. Goodbye!");
-        Client.Network.Logout();
-        Console.WriteLine("I am Loged out please press enter to close...");
-        Console.ReadLine();
+        Config config = new Config();
+        TraceSession session = new TraceSession(config);
+        session.Run();
     }
 } // class SLTrace
 } // namespace SLTrace
