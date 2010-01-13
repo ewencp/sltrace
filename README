@@ -1,0 +1,10 @@
+sltrace
+-------
+
+This is a utility for collecting trace data from Second Life.  The
+goal is to leverage existing libraries (primarily libomv) to be able
+to collect large amounts of trace data automatically.  This includes
+both automating the collection of trace data via a single client
+connection over long periods of time (a long term first person view)
+as well as coordinating a collection of clients, possibly across many
+servers, to obtain the best possible aggregated information.
