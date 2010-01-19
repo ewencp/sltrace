@@ -6,6 +6,7 @@ SLTRACE_SOURCES+=src/sltrace/AssemblyInfo.cs
 SLTRACE_SOURCES+=src/sltrace/Config.cs
 SLTRACE_SOURCES+=src/sltrace/TraceSession.cs
 SLTRACE_SOURCES+=src/sltrace/ITracer.cs
+SLTRACE_SOURCES+=src/sltrace/ObjectPathTracer.cs
 SLTRACE_SOURCES+=src/sltrace/RawPacketTracer.cs
 SLTRACE_REFDIRS=bin/
 SLTRACE_REFS=OpenMetaverse,OpenMetaverseTypes
@@ -20,6 +21,6 @@ ${BIN_DIR} :
 	mkdir ${BIN_DIR}
 
 ${SLTRACE_BIN} : ${BIN_DIR} ${SLTRACE_SOURCES}
-	gmcs -lib:${SLTRACE_REFDIRS} -r:${SLTRACE_REFS} -out:${SLTRACE_BIN} ${SLTRACE_SOURCES}
+	gmcs -debug -lib:${SLTRACE_REFDIRS} -r:${SLTRACE_REFS} -out:${SLTRACE_BIN} ${SLTRACE_SOURCES}
 
 sltrace : ${SLTRACE_BIN}

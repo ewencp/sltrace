@@ -42,7 +42,8 @@ class SLTrace {
         Config config = new Config();
         TraceSession session = new TraceSession(config);
 
-        session.AddTracer(new RawPacketTracer());
+        //session.AddTracer(new RawPacketTracer());
+        session.AddTracer(new ObjectPathTracer());
 
         session.Run();
     }
