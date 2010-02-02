@@ -84,8 +84,9 @@ class ObjectPathTracer : ITracer {
             mActiveObjects[prim.LocalID] = prim.ID;
         }
 
-        mSeenObjects.Add(prim.ID);
-        if (prim is Avatar)
+        if (!mSeenObjects.Contains(prim.ID))
+            mSeenObjects.Add(prim.ID);
+        if (prim is Avatar && !mSeenAvatars.Contains(prim.ID))
             mSeenAvatars.Add(prim.ID);
     }
 
