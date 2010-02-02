@@ -1,5 +1,5 @@
 /*  SLTrace
- *  Main.cs
+ *  IController.cs
  *
  *  Copyright (c) 2010, Ewen Cheslack-Postava
  *  All rights reserved.
@@ -34,20 +34,27 @@ using System;
 
 namespace SLTrace {
 
-/** SLTrace is the main trace class -- it load configs, sets up the client
- *  connection, starts and stops logging.
+/** Interface for Controller elements, which register with TraceSession and
+ *  control the movement of the avatar running the trace.  This effectively
+ *  controls what region of the world is recorded.  The IController uses a
+ *  polling approach because it is expected that navigation may a) be unrelated
+ *  to what is seen in the world (i.e. going for coverage, not responding to
+ *  in-world events), and b) updates are relatively infrequent because we are
+ *  only observing or, if moving, we are using libomv's auto-pilot.
  */
-class SLTrace {
-    static void Main(string[] args) {
-        Config config = new Config();
-        TraceSession session = new TraceSession(config);
+interface IController {
+    /** Invoked once when the parent TraceSession is setup, but before the
+     *  connections start.  IControllers should generally only need the
+     *  AgentManager to control the avatar, but a reference to the
+     *  TraceSession, which can be used to gain full sim access, is also
+     *  provided.
+     */
+    void StartTrace(TraceSession parent, OpenMetaverse.AgentManager avatarManager);
 
-        //session.AddTracer(new RawPacketTracer());
-        session.AddTracer(new ObjectPathTracer());
+    /** Invoked periodically to allow this controller to update its navigation
+     *  plan, possibly generating updates for the sim.
+     */
+    void Update();
+} // interface IController
 
-        session.Controller = new StaticRotatingController();
-
-        session.Run();
-    }
-} // class SLTrace
 } // namespace SLTrace

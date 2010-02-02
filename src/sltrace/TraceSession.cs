@@ -33,6 +33,7 @@
 using System;
 using OpenMetaverse;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace SLTrace {
 
@@ -41,6 +42,7 @@ class TraceSession {
         mConfig = cfg;
         mClient = new GridClient();
         mTracers = new List<ITracer>();
+        mController = null;
 
         // We turn as many things off as possible -- features are *opt in* by
         // default, meaning specific loggers must enable these features if they
@@ -66,10 +68,21 @@ class TraceSession {
             mTracers.Add(tr);
     }
 
+    public IController Controller {
+        set {
+            mController = value;
+        }
+    }
+
     public void Run() {
         // Notify all ITracers of start
         foreach(ITracer tr in mTracers)
             tr.StartTrace(this);
+        // Notify controller
+        if (mController != null) {
+            Debug.Assert(mClient.Self != null, "Avatar AgentManager is null");
+            mController.StartTrace(this, mClient.Self);
+        }
 
         var logged_in = mClient.Network.Login(
             mConfig.FirstName, mConfig.LastName, mConfig.Password,
@@ -86,6 +99,7 @@ class TraceSession {
         DateTime start = DateTime.Now;
         while(true) {
             System.Threading.Thread.Sleep(1000);
+            mController.Update();
             if (DateTime.Now - start > mConfig.Duration)
                 break;
         }
@@ -109,6 +123,7 @@ class TraceSession {
     private Config mConfig;
     private GridClient mClient;
     private List<ITracer> mTracers;
+    private IController mController;
 } // class TraceSession
 
 } // namespace SLTrace

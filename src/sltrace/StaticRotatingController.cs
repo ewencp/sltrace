@@ -1,5 +1,5 @@
 /*  SLTrace
- *  Main.cs
+ *  StaticRotatingController.cs
  *
  *  Copyright (c) 2010, Ewen Cheslack-Postava
  *  All rights reserved.
@@ -31,23 +31,47 @@
  */
 
 using System;
+using System.Diagnostics;
+using OpenMetaverse;
 
 namespace SLTrace {
 
-/** SLTrace is the main trace class -- it load configs, sets up the client
- *  connection, starts and stops logging.
+/** StaticRotatingController just sits in one location (static) and rotates at
+ *  an approximate specified rate, surveying the entire region surrounding it.
  */
-class SLTrace {
-    static void Main(string[] args) {
-        Config config = new Config();
-        TraceSession session = new TraceSession(config);
-
-        //session.AddTracer(new RawPacketTracer());
-        session.AddTracer(new ObjectPathTracer());
-
-        session.Controller = new StaticRotatingController();
-
-        session.Run();
+class StaticRotatingController : IController {
+    public StaticRotatingController() {
+        mGridClient = null;
+        mAgentManager = null;
+        mAngle = 0.0f;
     }
-} // class SLTrace
+
+    public void StartTrace(TraceSession parent, OpenMetaverse.AgentManager avatarManager) {
+        mGridClient = parent.Client;
+        mAgentManager = avatarManager;
+    }
+
+    public void Update() {
+        Debug.Assert(mGridClient.Settings.SEND_AGENT_UPDATES, "Agent updates are disabled, won't be able to move avatar.");
+
+        mAngle += 20.0f;
+        while(mAngle >= 360.0f)
+            mAngle -= 360.0f;
+
+        Vector3 direction = new Vector3((float)Math.Cos(mAngle), (float)Math.Sin(mAngle), 0.0f);
+
+        Quaternion rot = Vector3.RotationBetween(Vector3.UnitX, Vector3.Normalize(direction));
+
+        mAgentManager.Movement.BodyRotation = rot;
+        mAgentManager.Movement.HeadRotation = rot;
+        mAgentManager.Movement.Camera.LookDirection(direction);
+
+        mAgentManager.Movement.SendUpdate();
+    }
+
+    private GridClient mGridClient;
+    private AgentManager mAgentManager;
+    private float mAngle;
+} // interface StaticRotatingController
+
 } // namespace SLTrace
