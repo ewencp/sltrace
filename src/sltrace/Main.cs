@@ -45,7 +45,7 @@ class SLTrace {
         //session.AddTracer(new RawPacketTracer());
         session.AddTracer(new ObjectPathTracer());
 
-        session.Controller = new StaticRotatingController();
+        session.Controller = new StaticRotatingController(System.TimeSpan.FromSeconds(30));
 
         session.Run();
     }

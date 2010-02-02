@@ -40,21 +40,28 @@ namespace SLTrace {
  *  an approximate specified rate, surveying the entire region surrounding it.
  */
 class StaticRotatingController : IController {
-    public StaticRotatingController() {
+    public StaticRotatingController(TimeSpan rotate_period) {
         mGridClient = null;
         mAgentManager = null;
+        mPeriod = rotate_period;
+
+        mLastUpdate = DateTime.Now;
         mAngle = 0.0f;
     }
 
     public void StartTrace(TraceSession parent, OpenMetaverse.AgentManager avatarManager) {
         mGridClient = parent.Client;
         mAgentManager = avatarManager;
+
+        mLastUpdate = DateTime.Now;
     }
 
     public void Update() {
         Debug.Assert(mGridClient.Settings.SEND_AGENT_UPDATES, "Agent updates are disabled, won't be able to move avatar.");
 
-        mAngle += 20.0f;
+        DateTime curt = DateTime.Now;
+        double rotations = (curt - mLastUpdate).TotalSeconds / mPeriod.TotalSeconds;
+        mAngle += (float)(rotations * 360.0);
         while(mAngle >= 360.0f)
             mAngle -= 360.0f;
 
@@ -67,10 +74,15 @@ class StaticRotatingController : IController {
         mAgentManager.Movement.Camera.LookDirection(direction);
 
         mAgentManager.Movement.SendUpdate();
+
+        mLastUpdate = curt;
     }
 
     private GridClient mGridClient;
     private AgentManager mAgentManager;
+    private TimeSpan mPeriod;
+
+    private DateTime mLastUpdate;
     private float mAngle;
 } // interface StaticRotatingController
 
