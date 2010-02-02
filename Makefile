@@ -26,3 +26,6 @@ ${SLTRACE_BIN} : ${BIN_DIR} ${SLTRACE_SOURCES}
 	gmcs -debug -lib:${SLTRACE_REFDIRS} -r:${SLTRACE_REFS} -out:${SLTRACE_BIN} ${SLTRACE_SOURCES}
 
 sltrace : ${SLTRACE_BIN}
+
+clean :
+	rm -f ${SLTRACE_BIN}
