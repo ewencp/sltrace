@@ -85,16 +85,21 @@ class ObjectPathTracer : ITracer {
         mJSON.Finish();
     }
 
-    private void CheckMembership(Primitive prim) {
+    private void CheckMembership(String primtype, Primitive prim) {
+        bool do_report = true;
         lock(mActiveObjects) {
             if (mActiveObjects.ContainsKey(prim.LocalID)) {
                 if (mActiveObjects[prim.LocalID] != prim.ID)
                     Console.WriteLine("Object addition for existing local id: " + prim.LocalID.ToString());
+                do_report = false;
             }
             else {
                 mActiveObjects[prim.LocalID] = prim.ID;
+                do_report = true;
             }
         }
+        if (do_report)
+            StoreNewObject(primtype, prim.ID);
 
         lock(mSeenObjects) {
             if (!mSeenObjects.Contains(prim.ID))
@@ -107,14 +112,21 @@ class ObjectPathTracer : ITracer {
         }
     }
 
-    private UUID RemoveMembership(uint localid) {
+    private void RemoveMembership(uint localid) {
+        UUID fullid = UUID.Zero;
         lock(mActiveObjects) {
-            if (!mActiveObjects.ContainsKey(localid))
-                return UUID.Zero;
+            if (mActiveObjects.ContainsKey(localid)) {
+                fullid = mActiveObjects[localid];
+                mActiveObjects.Remove(localid);
+            }
+        }
 
-            UUID result = mActiveObjects[localid];
-            mActiveObjects.Remove(localid);
-            return result;
+        if (fullid == UUID.Zero) return;
+        lock(mJSON) {
+            mJSON.BeginObject();
+            mJSON.Field("event", new JSONString("kill"));
+            mJSON.Field("id", new JSONString(fullid.ToString()));
+            mJSON.EndObject();
         }
     }
 
@@ -137,32 +149,21 @@ class ObjectPathTracer : ITracer {
     }
 
     private void NewAvatarHandler(Simulator simulator, Avatar avatar, ulong regionHandle, ushort timeDilation) {
-        CheckMembership(avatar);
-        StoreNewObject("avatar", avatar.ID);
+        CheckMembership("avatar", avatar);
     }
     private void NewPrimHandler(Simulator simulator, Primitive prim, ulong regionHandle, ushort timeDilation) {
-        CheckMembership(prim);
-        StoreNewObject("prim", prim.ID);
+        CheckMembership("prim", prim);
     }
     private void NewAttachmentHandler(Simulator simulator, Primitive prim, ulong regionHandle, ushort timeDilation) {
-        CheckMembership(prim);
-        StoreNewObject("attachment", prim.ID);
+        CheckMembership("attachment", prim);
     }
 
     private void ObjectUpdatedTerseHandler(Simulator simulator, Primitive prim, ObjectUpdate update, ulong regionHandle, ushort timeDilation) {
-        CheckMembership(prim);
-        StoreNewObject("prim", prim.ID);
+        CheckMembership("terse", prim);
     }
 
     private void ObjectKilledHandler(Simulator simulator, uint objectID) {
-        UUID fullid = RemoveMembership(objectID);
-        if (fullid == UUID.Zero) return;
-        lock(mJSON) {
-            mJSON.BeginObject();
-            mJSON.Field("event", new JSONString("kill"));
-            mJSON.Field("id", new JSONString(fullid.ToString()));
-            mJSON.EndObject();
-        }
+        RemoveMembership(objectID);
     }
 
     private TraceSession mParent;
