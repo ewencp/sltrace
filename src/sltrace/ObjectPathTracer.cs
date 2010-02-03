@@ -86,27 +86,36 @@ class ObjectPathTracer : ITracer {
     }
 
     private void CheckMembership(Primitive prim) {
-        if (mActiveObjects.ContainsKey(prim.LocalID)) {
-            if (mActiveObjects[prim.LocalID] != prim.ID)
-                Console.WriteLine("Object addition for existing local id: " + prim.LocalID.ToString());
-        }
-        else {
-            mActiveObjects[prim.LocalID] = prim.ID;
+        lock(mActiveObjects) {
+            if (mActiveObjects.ContainsKey(prim.LocalID)) {
+                if (mActiveObjects[prim.LocalID] != prim.ID)
+                    Console.WriteLine("Object addition for existing local id: " + prim.LocalID.ToString());
+            }
+            else {
+                mActiveObjects[prim.LocalID] = prim.ID;
+            }
         }
 
-        if (!mSeenObjects.Contains(prim.ID))
-            mSeenObjects.Add(prim.ID);
-        if (prim is Avatar && !mSeenAvatars.Contains(prim.ID))
-            mSeenAvatars.Add(prim.ID);
+        lock(mSeenObjects) {
+            if (!mSeenObjects.Contains(prim.ID))
+                mSeenObjects.Add(prim.ID);
+        }
+
+        lock(mSeenAvatars) {
+            if (prim is Avatar && !mSeenAvatars.Contains(prim.ID))
+                mSeenAvatars.Add(prim.ID);
+        }
     }
 
     private UUID RemoveMembership(uint localid) {
-        if (!mActiveObjects.ContainsKey(localid))
-            return UUID.Zero;
+        lock(mActiveObjects) {
+            if (!mActiveObjects.ContainsKey(localid))
+                return UUID.Zero;
 
-        UUID result = mActiveObjects[localid];
-        mActiveObjects.Remove(localid);
-        return result;
+            UUID result = mActiveObjects[localid];
+            mActiveObjects.Remove(localid);
+            return result;
+        }
     }
 
     private void ObjectDataBlockUpdateHandler(Simulator simulator, Primitive prim, Primitive.ConstructionData constructionData, ObjectUpdatePacket.ObjectDataBlock block, ObjectUpdate update, NameValue[] nameValues) {
