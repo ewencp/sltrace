@@ -67,6 +67,10 @@ class ObjectPathTracer : ITracer {
         mParent.Client.Objects.OnObjectKilled +=
             new ObjectManager.KillObjectCallback(this.ObjectKilledHandler);
 
+
+        mParent.Client.Objects.OnObjectProperties +=
+            new ObjectManager.ObjectPropertiesCallback(this.ObjectPropertiesHandler);
+
         mParent.Client.Self.Movement.Camera.Far = 512.0f;
 
 
@@ -91,21 +95,18 @@ class ObjectPathTracer : ITracer {
         mJSON.Finish();
     }
 
-    private void CheckMembership(String primtype, Primitive prim) {
-        bool do_report = true;
+    private void CheckMembership(Simulator sim, String primtype, Primitive prim) {
         lock(mActiveObjects) {
             if (mActiveObjects.ContainsKey(prim.LocalID)) {
                 if (mActiveObjects[prim.LocalID] != prim.ID)
                     Console.WriteLine("Object addition for existing local id: " + prim.LocalID.ToString());
-                do_report = false;
             }
             else {
                 mActiveObjects[prim.LocalID] = prim.ID;
-                do_report = true;
+                StoreNewObject(primtype, prim.ID);
+                RequestObjectProperties(sim, prim);
             }
         }
-        if (do_report)
-            StoreNewObject(primtype, prim.ID);
 
         lock(mSeenObjects) {
             if (!mSeenObjects.Contains(prim.ID))
@@ -137,6 +138,10 @@ class ObjectPathTracer : ITracer {
         }
     }
 
+    private void RequestObjectProperties(Simulator sim, Primitive prim) {
+        mParent.Client.Objects.SelectObject(sim, prim.LocalID);
+    }
+
     private void ObjectDataBlockUpdateHandler(Simulator simulator, Primitive prim, Primitive.ConstructionData constructionData, ObjectUpdatePacket.ObjectDataBlock block, ObjectUpdate update, NameValue[] nameValues) {
         // Note: We can't do membership or really much useful here since the
         // primitive doesn't have its information filled in quite yet.  Instead,
@@ -157,17 +162,17 @@ class ObjectPathTracer : ITracer {
     }
 
     private void NewAvatarHandler(Simulator simulator, Avatar avatar, ulong regionHandle, ushort timeDilation) {
-        CheckMembership("avatar", avatar);
+        CheckMembership(simulator, "avatar", avatar);
     }
     private void NewPrimHandler(Simulator simulator, Primitive prim, ulong regionHandle, ushort timeDilation) {
-        CheckMembership("prim", prim);
+        CheckMembership(simulator, "prim", prim);
     }
     private void NewAttachmentHandler(Simulator simulator, Primitive prim, ulong regionHandle, ushort timeDilation) {
-        CheckMembership("attachment", prim);
+        CheckMembership(simulator, "attachment", prim);
     }
 
     private void ObjectUpdatedTerseHandler(Simulator simulator, Primitive prim, ObjectUpdate update, ulong regionHandle, ushort timeDilation) {
-        CheckMembership("terse", prim);
+        CheckMembership(simulator, "terse", prim);
 
         // Position update
         lock(mJSON) {
@@ -185,6 +190,17 @@ class ObjectPathTracer : ITracer {
 
     private void ObjectKilledHandler(Simulator simulator, uint objectID) {
         RemoveMembership(objectID);
+    }
+
+    void ObjectPropertiesHandler(Simulator simulator, Primitive.ObjectProperties properties) {
+        lock(mJSON) {
+            mJSON.BeginObject();
+            JSONStringField("event", "properties");
+            JSONStringField("id", properties.ObjectID);
+            JSONStringField("name", properties.Name);
+            JSONStringField("description", properties.Description);
+            mJSON.EndObject();
+        }
     }
 
 
