@@ -68,11 +68,21 @@ class ObjectPathTracer : ITracer {
             new ObjectManager.KillObjectCallback(this.ObjectKilledHandler);
 
         mParent.Client.Self.Movement.Camera.Far = 512.0f;
+
+
+        // We output JSON, one giant list of events
+        System.IO.TextWriter streamWriter =
+            new System.IO.StreamWriter("object_paths.txt");
+        mJSON = new JSON(streamWriter);
+        mJSON.BeginArray();
     }
 
     public void StopTrace() {
         Console.WriteLine("Saw " + mSeenObjects.Count.ToString() + " Objects.");
         Console.WriteLine("Saw " + mSeenAvatars.Count.ToString() + " Avatars.");
+
+        mJSON.EndArray();
+        mJSON.Finish();
     }
 
     private void CheckMembership(Primitive prim) {
@@ -90,9 +100,13 @@ class ObjectPathTracer : ITracer {
             mSeenAvatars.Add(prim.ID);
     }
 
-    private void RemoveMembership(uint localid) {
-        if (mActiveObjects.ContainsKey(localid))
-            mActiveObjects.Remove(localid);
+    private UUID RemoveMembership(uint localid) {
+        if (!mActiveObjects.ContainsKey(localid))
+            return UUID.Zero;
+
+        UUID result = mActiveObjects[localid];
+        mActiveObjects.Remove(localid);
+        return result;
     }
 
     private void ObjectDataBlockUpdateHandler(Simulator simulator, Primitive prim, Primitive.ConstructionData constructionData, ObjectUpdatePacket.ObjectDataBlock block, ObjectUpdate update, NameValue[] nameValues) {
@@ -103,24 +117,43 @@ class ObjectPathTracer : ITracer {
         //Console.WriteLine("Object: " + update.LocalID.ToString() + " - " + update.Position.ToString() + " " + update.Velocity.ToString());
     }
 
+    private void StoreNewObject(String type, UUID id) {
+        lock(mJSON) {
+            mJSON.BeginObject();
+            mJSON.Field("event", new JSONString("add"));
+            mJSON.Field("type", new JSONString(type));
+            mJSON.Field("id", new JSONString(id.ToString()));
+            mJSON.EndObject();
+        }
+    }
+
     private void NewAvatarHandler(Simulator simulator, Avatar avatar, ulong regionHandle, ushort timeDilation) {
         CheckMembership(avatar);
+        StoreNewObject("avatar", avatar.ID);
     }
     private void NewPrimHandler(Simulator simulator, Primitive prim, ulong regionHandle, ushort timeDilation) {
         CheckMembership(prim);
+        StoreNewObject("prim", prim.ID);
     }
     private void NewAttachmentHandler(Simulator simulator, Primitive prim, ulong regionHandle, ushort timeDilation) {
         CheckMembership(prim);
+        StoreNewObject("attachment", prim.ID);
     }
 
     private void ObjectUpdatedTerseHandler(Simulator simulator, Primitive prim, ObjectUpdate update, ulong regionHandle, ushort timeDilation) {
         CheckMembership(prim);
-        //Console.WriteLine("Object: " + update.LocalID.ToString() + " - " + update.Position.ToString() + " " + update.Velocity.ToString());
+        StoreNewObject("prim", prim.ID);
     }
 
     private void ObjectKilledHandler(Simulator simulator, uint objectID) {
-        RemoveMembership(objectID);
-        //Console.WriteLine("Object Killed: " + objectID.ToString());
+        UUID fullid = RemoveMembership(objectID);
+        if (fullid == UUID.Zero) return;
+        lock(mJSON) {
+            mJSON.BeginObject();
+            mJSON.Field("event", new JSONString("kill"));
+            mJSON.Field("id", new JSONString(fullid.ToString()));
+            mJSON.EndObject();
+        }
     }
 
     private TraceSession mParent;
@@ -130,6 +163,7 @@ class ObjectPathTracer : ITracer {
     private HashSet<UUID> mSeenObjects;
     private HashSet<UUID> mSeenAvatars;
 
+    private JSON mJSON; // Stores JSON formatted output event stream
 } // class RawPacketTracer
 
 } // namespace SLTrace
