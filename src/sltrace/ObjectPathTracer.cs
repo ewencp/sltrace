@@ -44,8 +44,6 @@ class ObjectPathTracer : ITracer {
     public void StartTrace(TraceSession parent) {
         mParent = parent;
         mActiveObjects = new Dictionary<uint,UUID>();
-        mSeenObjects = new HashSet<UUID>();
-        mSeenAvatars = new HashSet<UUID>();
 
         mParent.Client.Objects.OnObjectDataBlockUpdate +=
             new ObjectManager.ObjectDataBlockUpdateCallback(this.ObjectDataBlockUpdateHandler);
@@ -88,9 +86,6 @@ class ObjectPathTracer : ITracer {
     }
 
     public void StopTrace() {
-        Console.WriteLine("Saw " + mSeenObjects.Count.ToString() + " Objects.");
-        Console.WriteLine("Saw " + mSeenAvatars.Count.ToString() + " Avatars.");
-
         mJSON.EndArray();
         mJSON.Finish();
     }
@@ -106,16 +101,6 @@ class ObjectPathTracer : ITracer {
                 StoreNewObject(primtype, prim.ID);
                 RequestObjectProperties(sim, prim);
             }
-        }
-
-        lock(mSeenObjects) {
-            if (!mSeenObjects.Contains(prim.ID))
-                mSeenObjects.Add(prim.ID);
-        }
-
-        lock(mSeenAvatars) {
-            if (prim is Avatar && !mSeenAvatars.Contains(prim.ID))
-                mSeenAvatars.Add(prim.ID);
         }
     }
 
@@ -196,7 +181,7 @@ class ObjectPathTracer : ITracer {
         lock(mJSON) {
             mJSON.BeginObject();
             JSONStringField("event", "properties");
-            JSONStringField("id", properties.ObjectID);
+            JSONUUIDField("id", properties.ObjectID);
             JSONStringField("name", properties.Name);
             JSONStringField("description", properties.Description);
             mJSON.EndObject();
@@ -241,9 +226,6 @@ class ObjectPathTracer : ITracer {
     private DateTime mStartTime;
 
     private Dictionary<uint, UUID> mActiveObjects;
-
-    private HashSet<UUID> mSeenObjects;
-    private HashSet<UUID> mSeenAvatars;
 
     private JSON mJSON; // Stores JSON formatted output event stream
 } // class RawPacketTracer
