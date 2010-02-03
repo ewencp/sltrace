@@ -75,6 +75,12 @@ class ObjectPathTracer : ITracer {
             new System.IO.StreamWriter("object_paths.txt");
         mJSON = new JSON(streamWriter);
         mJSON.BeginArray();
+
+        mStartTime = DateTime.Now;
+        mJSON.BeginObject();
+        mJSON.Field("event", new JSONString("started"));
+        mJSON.Field("time", new JSONString( mStartTime.ToString() ));
+        mJSON.EndObject();
     }
 
     public void StopTrace() {
@@ -125,6 +131,7 @@ class ObjectPathTracer : ITracer {
         lock(mJSON) {
             mJSON.BeginObject();
             mJSON.Field("event", new JSONString("kill"));
+            mJSON.Field("time", new JSONString(SinceStartString));
             mJSON.Field("id", new JSONString(fullid.ToString()));
             mJSON.EndObject();
         }
@@ -142,6 +149,7 @@ class ObjectPathTracer : ITracer {
         lock(mJSON) {
             mJSON.BeginObject();
             mJSON.Field("event", new JSONString("add"));
+            mJSON.Field("time", new JSONString(SinceStartString));
             mJSON.Field("type", new JSONString(type));
             mJSON.Field("id", new JSONString(id.ToString()));
             mJSON.EndObject();
@@ -166,7 +174,20 @@ class ObjectPathTracer : ITracer {
         RemoveMembership(objectID);
     }
 
+
+
+
+    private TimeSpan SinceStart {
+        get { return DateTime.Now - mStartTime; }
+    }
+
+    private String SinceStartString {
+        get { return SinceStart.TotalMilliseconds.ToString() + "ms"; }
+    }
+
+
     private TraceSession mParent;
+    private DateTime mStartTime;
 
     private Dictionary<uint, UUID> mActiveObjects;
 
