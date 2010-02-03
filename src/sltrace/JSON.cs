@@ -128,7 +128,15 @@ class JSON {
     }
 
     public void BeginObject() {
-        CheckParentSeparator();
+        BeginObject(false);
+    }
+
+    // is_field indicates whether this call is due to adding an object field, in
+    // which case we don't need to check for separators since its already been
+    // done when adding the field name
+    private void BeginObject(bool is_field) {
+        if (!is_field)
+            CheckParentSeparator();
 
         mElementStack.Push( new ElementRecord(ElementType.Object) );
         mWriter.Write("{\n");
@@ -149,7 +157,12 @@ class JSON {
     }
 
     public void BeginArray() {
-        CheckParentSeparator();
+        BeginArray(false);
+    }
+
+    public void BeginArray(bool is_field) {
+        if (!is_field)
+            CheckParentSeparator();
 
         mElementStack.Push( new ElementRecord(ElementType.Array) );
         mWriter.Write("[\n");
@@ -170,11 +183,20 @@ class JSON {
     }
 
 
-    /** Add the key portion of an element of an object, under the assumption
-     *  that the value is either an object or array.
+    /** Add a field that is a subobject.  This starts the object definition, so
+     *  the user only needs to add fields and then call EndObject().
      */
-    public void Field(String key) {
+    public void ObjectField(String key) {
         AddFieldKey(key);
+        BeginObject(true);
+    }
+
+    /** Add a field that is an array.  This starts the array definition, so
+     *  the user only needs to add fields and then call EndArray().
+     */
+    public void ArrayField(String key) {
+        AddFieldKey(key);
+        BeginArray(true);
     }
 
     /** Add a field to the current parent object. */

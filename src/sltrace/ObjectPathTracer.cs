@@ -78,7 +78,7 @@ class ObjectPathTracer : ITracer {
 
         mStartTime = DateTime.Now;
         mJSON.BeginObject();
-        mJSON.Field("event", new JSONString("started"));
+        JSONStringField("event", "started");
         mJSON.Field("time", new JSONString( mStartTime.ToString() ));
         mJSON.EndObject();
     }
@@ -130,9 +130,9 @@ class ObjectPathTracer : ITracer {
         if (fullid == UUID.Zero) return;
         lock(mJSON) {
             mJSON.BeginObject();
-            mJSON.Field("event", new JSONString("kill"));
-            mJSON.Field("time", new JSONString(SinceStartString));
-            mJSON.Field("id", new JSONString(fullid.ToString()));
+            JSONStringField("event", "kill");
+            JSONTimeSpanField("time", SinceStart);
+            JSONUUIDField("id", fullid);
             mJSON.EndObject();
         }
     }
@@ -148,10 +148,10 @@ class ObjectPathTracer : ITracer {
     private void StoreNewObject(String type, UUID id) {
         lock(mJSON) {
             mJSON.BeginObject();
-            mJSON.Field("event", new JSONString("add"));
-            mJSON.Field("time", new JSONString(SinceStartString));
-            mJSON.Field("type", new JSONString(type));
-            mJSON.Field("id", new JSONString(id.ToString()));
+            JSONStringField("event", "add");
+            JSONTimeSpanField("time", SinceStart);
+            JSONStringField("type", type);
+            JSONUUIDField("id", id);
             mJSON.EndObject();
         }
     }
@@ -168,6 +168,19 @@ class ObjectPathTracer : ITracer {
 
     private void ObjectUpdatedTerseHandler(Simulator simulator, Primitive prim, ObjectUpdate update, ulong regionHandle, ushort timeDilation) {
         CheckMembership("terse", prim);
+
+        // Position update
+        lock(mJSON) {
+            mJSON.BeginObject();
+            JSONStringField("event", "update");
+            JSONUUIDField("id", prim.ID);
+            JSONTimeSpanField("time", SinceStart);
+            JSONVector3Field("pos", update.Position);
+            JSONVector3Field("vel", update.Velocity);
+            JSONQuaternionField("rot", update.Rotation);
+            JSONVector3Field("angvel", update.AngularVelocity);
+            mJSON.EndObject();
+        }
     }
 
     private void ObjectKilledHandler(Simulator simulator, uint objectID) {
@@ -176,13 +189,35 @@ class ObjectPathTracer : ITracer {
 
 
 
-
-    private TimeSpan SinceStart {
-        get { return DateTime.Now - mStartTime; }
+    // JSON Encoding helpers
+    private void JSONStringField(String name, String val) {
+        mJSON.Field(name, new JSONString(val));
+    }
+    private void JSONUUIDField(String name, UUID val) {
+        mJSON.Field(name, new JSONString( val.ToString() ));
+    }
+    private void JSONVector3Field(String name, Vector3 vec) {
+        mJSON.ObjectField(name);
+        mJSON.Field("x", new JSONString(vec.X.ToString()));
+        mJSON.Field("y", new JSONString(vec.Y.ToString()));
+        mJSON.Field("z", new JSONString(vec.Z.ToString()));
+        mJSON.EndObject();
+    }
+    private void JSONQuaternionField(String name, Quaternion vec) {
+        mJSON.ObjectField(name);
+        mJSON.Field("w", new JSONString(vec.W.ToString()));
+        mJSON.Field("x", new JSONString(vec.X.ToString()));
+        mJSON.Field("y", new JSONString(vec.Y.ToString()));
+        mJSON.Field("z", new JSONString(vec.Z.ToString()));
+        mJSON.EndObject();
+    }
+    private void JSONTimeSpanField(String name, TimeSpan val) {
+        mJSON.Field(name, new JSONString( val.TotalMilliseconds.ToString() + "ms" ));
     }
 
-    private String SinceStartString {
-        get { return SinceStart.TotalMilliseconds.ToString() + "ms"; }
+    // Time helpers
+    private TimeSpan SinceStart {
+        get { return DateTime.Now - mStartTime; }
     }
 
 
