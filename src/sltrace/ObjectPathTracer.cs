@@ -194,7 +194,25 @@ class ObjectPathTracer : ITracer {
                 JSONUUIDField("parent", parent.ID);
             mJSON.EndObject();
         }
+
+        // Selecting avatars doesn't work for getting object properties, but the
+        // same properties are available immediately here.
+        Avatar avtr = obj as Avatar;
+        if (avtr != null)
+            StoreObjectProperties(avtr.ID, avtr.Name, "(Avatar: N/A)");
     }
+
+    private void StoreObjectProperties(UUID id, string name, String description) {
+        lock(mJSON) {
+            mJSON.BeginObject();
+            JSONStringField("event", "properties");
+            JSONUUIDField("id", id);
+            JSONStringField("name", name);
+            JSONStringField("description", description);
+            mJSON.EndObject();
+        }
+    }
+
 
     private void NewAvatarHandler(Simulator simulator, Avatar avatar, ulong regionHandle, ushort timeDilation) {
         CheckMembership(simulator, "avatar", avatar);
@@ -227,15 +245,8 @@ class ObjectPathTracer : ITracer {
         RemoveMembership(objectID);
     }
 
-    void ObjectPropertiesHandler(Simulator simulator, Primitive.ObjectProperties properties) {
-        lock(mJSON) {
-            mJSON.BeginObject();
-            JSONStringField("event", "properties");
-            JSONUUIDField("id", properties.ObjectID);
-            JSONStringField("name", properties.Name);
-            JSONStringField("description", properties.Description);
-            mJSON.EndObject();
-        }
+    private void ObjectPropertiesHandler(Simulator simulator, Primitive.ObjectProperties properties) {
+        StoreObjectProperties(properties.ObjectID, properties.Name, properties.Description);
     }
 
 
