@@ -74,6 +74,12 @@ class TraceSession {
         }
     }
 
+    public Config Config {
+        get {
+            return mConfig;
+        }
+    }
+
     public void Run() {
         // Notify all ITracers of start
         foreach(ITracer tr in mTracers)

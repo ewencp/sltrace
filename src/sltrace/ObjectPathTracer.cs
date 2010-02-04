@@ -35,6 +35,7 @@ using System.Collections.Generic;
 using System.Linq;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
+using OpenMetaverse.Rendering;
 
 namespace SLTrace {
 
@@ -44,6 +45,10 @@ namespace SLTrace {
 class ObjectPathTracer : ITracer {
     public void StartTrace(TraceSession parent) {
         mParent = parent;
+
+        string renderer_name = "OpenMetaverse.Rendering.Meshmerizer.dll";
+        string renderer_path = System.IO.Path.Combine(parent.Config.BinaryPath, renderer_name);
+        mRenderer = OpenMetaverse.Rendering.RenderingLoader.LoadRenderer(renderer_path);
 
         mObjectsByLocalID = new Dictionary<uint, Primitive>();
         mObjectsByID = new Dictionary<UUID, Primitive>();
@@ -93,6 +98,31 @@ class ObjectPathTracer : ITracer {
         mJSON.Finish();
     }
 
+    private void ComputeBounds(Primitive prim) {
+        SimpleMesh mesh = mRenderer.GenerateSimpleMesh(prim, DetailLevel.High);
+
+        if (mesh.Vertices.Count == 0)
+            return;
+
+        Vector3 vert_min = mesh.Vertices[0].Position;
+        Vector3 vert_max = mesh.Vertices[0].Position;
+
+        foreach(Vertex v in mesh.Vertices) {
+            vert_min = Vector3.Min(vert_min, v.Position);
+            vert_max = Vector3.Max(vert_max, v.Position);
+        }
+
+        lock(mJSON) {
+            mJSON.BeginObject();
+            JSONStringField("event", "size");
+            JSONUUIDField("id", prim.ID);
+            JSONTimeSpanField("time", SinceStart);
+            JSONVector3Field("min", vert_min);
+            JSONVector3Field("max", vert_max);
+            mJSON.EndObject();
+        }
+    }
+
     private void CheckMembership(Simulator sim, String primtype, Primitive prim) {
         lock(this) {
             if (mObjectsByLocalID.ContainsKey(prim.LocalID)) {
@@ -114,6 +144,7 @@ class ObjectPathTracer : ITracer {
                 parentPrim = mObjectsByLocalID[prim.ParentID];
             StoreNewObject(primtype, prim, prim.ParentID, parentPrim);
             RequestObjectProperties(sim, prim);
+            ComputeBounds(prim);
         }
     }
 
@@ -248,8 +279,8 @@ class ObjectPathTracer : ITracer {
     }
 
     private TraceSession mParent;
+    IRendering mRenderer;
     private DateTime mStartTime;
-
     private Dictionary<uint, Primitive> mObjectsByLocalID; // All tracked
                                                            // objects, by LocalID
     private Dictionary<UUID, Primitive> mObjectsByID; // All tracked objects, by
