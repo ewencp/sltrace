@@ -32,6 +32,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 
@@ -43,7 +44,9 @@ namespace SLTrace {
 class ObjectPathTracer : ITracer {
     public void StartTrace(TraceSession parent) {
         mParent = parent;
-        mActiveObjects = new Dictionary<uint,UUID>();
+
+        mObjectsByLocalID = new Dictionary<uint, Primitive>();
+        mObjectsByID = new Dictionary<UUID, Primitive>();
 
         mParent.Client.Objects.OnObjectDataBlockUpdate +=
             new ObjectManager.ObjectDataBlockUpdateCallback(this.ObjectDataBlockUpdateHandler);
@@ -91,25 +94,37 @@ class ObjectPathTracer : ITracer {
     }
 
     private void CheckMembership(Simulator sim, String primtype, Primitive prim) {
-        lock(mActiveObjects) {
-            if (mActiveObjects.ContainsKey(prim.LocalID)) {
-                if (mActiveObjects[prim.LocalID] != prim.ID)
+        lock(this) {
+            if (mObjectsByLocalID.ContainsKey(prim.LocalID)) {
+                if (mObjectsByLocalID[prim.LocalID] != prim)
                     Console.WriteLine("Object addition for existing local id: " + prim.LocalID.ToString());
+                return;
             }
-            else {
-                mActiveObjects[prim.LocalID] = prim.ID;
-                StoreNewObject(primtype, prim.ID);
-                RequestObjectProperties(sim, prim);
+
+            if (mObjectsByID.ContainsKey(prim.ID)) {
+                Console.WriteLine("Conflicting global ID, but local ID wasn't found.");
+                return;
             }
+
+            mObjectsByLocalID[prim.LocalID] = prim;
+            mObjectsByID[prim.ID] = prim;
+
+            Primitive parentPrim = null;
+            if (mObjectsByLocalID.ContainsKey(prim.ParentID))
+                parentPrim = mObjectsByLocalID[prim.ParentID];
+            StoreNewObject(primtype, prim, prim.ParentID, parentPrim);
+            RequestObjectProperties(sim, prim);
         }
     }
 
     private void RemoveMembership(uint localid) {
         UUID fullid = UUID.Zero;
-        lock(mActiveObjects) {
-            if (mActiveObjects.ContainsKey(localid)) {
-                fullid = mActiveObjects[localid];
-                mActiveObjects.Remove(localid);
+        lock(this) {
+            if (mObjectsByLocalID.ContainsKey(localid)) {
+                Primitive prim = mObjectsByLocalID[localid];
+                mObjectsByLocalID.Remove(localid);
+                mObjectsByID.Remove(prim.ID);
+                fullid = prim.ID;
             }
         }
 
@@ -135,13 +150,17 @@ class ObjectPathTracer : ITracer {
         //Console.WriteLine("Object: " + update.LocalID.ToString() + " - " + update.Position.ToString() + " " + update.Velocity.ToString());
     }
 
-    private void StoreNewObject(String type, UUID id) {
+    private void StoreNewObject(String type, Primitive obj, uint parentLocal, Primitive parent) {
         lock(mJSON) {
             mJSON.BeginObject();
             JSONStringField("event", "add");
             JSONTimeSpanField("time", SinceStart);
             JSONStringField("type", type);
-            JSONUUIDField("id", id);
+            JSONUInt32Field("local", obj.LocalID);
+            JSONUUIDField("id", obj.ID);
+            JSONUInt32Field("parent_local", parentLocal);
+            if (parent != null)
+                JSONUUIDField("parent", parent.ID);
             mJSON.EndObject();
         }
     }
@@ -194,6 +213,9 @@ class ObjectPathTracer : ITracer {
     private void JSONStringField(String name, String val) {
         mJSON.Field(name, new JSONString(val));
     }
+    private void JSONUInt32Field(String name, uint val) {
+        mJSON.Field(name, new JSONInt((long)val));
+    }
     private void JSONUUIDField(String name, UUID val) {
         mJSON.Field(name, new JSONString( val.ToString() ));
     }
@@ -221,11 +243,17 @@ class ObjectPathTracer : ITracer {
         get { return DateTime.Now - mStartTime; }
     }
 
+    private IEnumerable<Primitive> RootObjects {
+        get { return mObjectsByLocalID.Values.Where(obj => obj.ParentID == 0); }
+    }
 
     private TraceSession mParent;
     private DateTime mStartTime;
 
-    private Dictionary<uint, UUID> mActiveObjects;
+    private Dictionary<uint, Primitive> mObjectsByLocalID; // All tracked
+                                                           // objects, by LocalID
+    private Dictionary<UUID, Primitive> mObjectsByID; // All tracked objects, by
+                                                      // global UUID
 
     private JSON mJSON; // Stores JSON formatted output event stream
 } // class RawPacketTracer
