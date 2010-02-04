@@ -31,6 +31,7 @@
  */
 
 using System;
+using System.IO;
 
 namespace SLTrace {
 
@@ -39,7 +40,23 @@ namespace SLTrace {
  */
 class SLTrace {
     static void Main(string[] args) {
-        Config config = new Config();
+        // Try to extract information about where the binary is so we can
+        // specify in the Config where to search for other binaries
+        string[] clargs = Environment.GetCommandLineArgs();
+        if (clargs.Length == 0 || String.IsNullOrEmpty(clargs[0])) {
+            Console.WriteLine("Invalid program name in command line arguments.");
+            Environment.Exit(-1);
+            return;
+        }
+        string progname = Path.GetFullPath(clargs[0]);
+        if (!File.Exists(progname)) {
+            Console.WriteLine("Couldn't find full path to binary.");
+            Environment.Exit(-1);
+            return;
+        }
+        string progdir = Path.GetDirectoryName(progname);
+
+        Config config = new Config(progdir);
         TraceSession session = new TraceSession(config);
 
         //session.AddTracer(new RawPacketTracer());

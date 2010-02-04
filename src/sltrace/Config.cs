@@ -41,11 +41,18 @@ namespace SLTrace {
  *  include traces via a larger number of client connections).
  */
 class Config {
-    public Config() {
+    public Config(string binpath) {
+        mBinPath = binpath;
         mFirstName = "";
         mLastName = "";
         mPassword = "";
         mDuration = TimeSpan.FromSeconds(30);
+    }
+
+    // The path the binary sltrace.exe is being run from, useful for finding
+    // sister binaries and plugins.
+    public string BinaryPath {
+        get { return mBinPath; }
     }
 
     public string FirstName {
@@ -91,6 +98,7 @@ class Config {
         return (T)attributes[0];
     }
 
+    private string mBinPath;
     private string mFirstName;
     private string mLastName;
     private string mPassword;
