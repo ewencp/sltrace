@@ -83,6 +83,13 @@ class ObjectPathTrace:
         return ObjectPathTrace(raw=object_subset, start_time=self._start_time)
 
 
+    def events(self):
+        """Returns a list of all the events in this trace."""
+        return self._orig
+
+    def __iter__(self):
+        return self._orig.__iter__()
+
     def addition_events(self):
         """Returns a list of addition events in this trace."""
         if not self._additions:
