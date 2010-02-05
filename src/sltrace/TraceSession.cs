@@ -110,12 +110,12 @@ class TraceSession {
                 break;
         }
 
+        // And logout...
+        mClient.Network.Logout();
+
         // Notify all ITracers of start
         foreach(ITracer tr in mTracers)
             tr.StopTrace();
-
-        // And logout...
-        mClient.Network.Logout();
     }
 
     private void ConnectHandler(object sender) {
