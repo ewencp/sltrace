@@ -26,7 +26,7 @@ class ObjectPathTrace:
     to fill in missing parent information).
     """
 
-    def __init__(self, trace_file=None, raw=None, start_time=None, report_parent_errors=False):
+    def __init__(self, trace_file=None, raw=None, start_time=None):
         """
         Create a new ObjectPathTrace. Only one source of data should be
         specified.
@@ -37,9 +37,6 @@ class ObjectPathTrace:
                events (default None)
         start_time -- start time to use for this trace. Overrides any start
                       time specified in the raw trace. (default None)
-        report_parent_errors -- if True, errors with parent identifiers will
-                                be reported, such as missing or duplicate
-                                parents
         """
 
         # Get raw data
@@ -60,9 +57,6 @@ class ObjectPathTrace:
         # 2) By event type
         self._additions = None # List of addition events
         self._removals = None # List of removal events
-
-        # Try to fill in parent IDs for ad
-        self.__fill_parents(report=report_parent_errors)
 
     def objects(self):
         """Returns a list of object UUIDs encountered in this trace."""
@@ -116,7 +110,7 @@ class ObjectPathTrace:
         return self._additions
 
 
-    def __fill_parents(self, report=False):
+    def fill_parents(self, report=False):
         """
         Attempts to fill in the 'parent' field of addition events with the
         appropriate UUID, based on the 'parent_local' field.  This is necessary
@@ -155,6 +149,7 @@ def main():
         return -1
 
     trace = ObjectPathTrace(sys.argv[1])
+    trace.fill_parents(report=True)
 
     print "Trace file:", sys.argv[1]
     print "Number of objects:", len(trace.objects())
