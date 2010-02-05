@@ -16,7 +16,7 @@ def parse_time(val):
     return (float(val[:-2]) / 1000.0)
 
 class ObjectPathTrace:
-    def __init__(self, trace_file=None, raw=None, start_time=None):
+    def __init__(self, trace_file=None, raw=None, start_time=None, report_parent_errors=False):
         """
         Create a new ObjectPathTrace. Only one source of data should be
         specified.
@@ -27,6 +27,9 @@ class ObjectPathTrace:
                events (default None)
         start_time -- start time to use for this trace. Overrides any start
                       time specified in the raw trace. (default None)
+        report_parent_errors -- if True, errors with parent identifiers will
+                                be reported, such as missing or duplicate
+                                parents
         """
 
         # Get raw data
@@ -49,7 +52,7 @@ class ObjectPathTrace:
         self._removals = None # List of removal events
 
         # Try to fill in parent IDs for ad
-        self.__fill_parents()
+        self.__fill_parents(report=report_parent_errors)
 
     def objects(self):
         """Returns a list of object UUIDs encountered in this trace."""
@@ -103,7 +106,7 @@ class ObjectPathTrace:
         return self._additions
 
 
-    def __fill_parents(self):
+    def __fill_parents(self, report=False):
         """
         Attempts to fill in the 'parent' field of addition events with the
         appropriate UUID, based on the 'parent_local' field.  This is necessary
@@ -133,7 +136,7 @@ class ObjectPathTrace:
                     no_options += 1
                     continue
                 best_candidate = min(candidate_parents, key=lambda x:(parse_time(x['time'])-added_time))
-        if no_options > 0:
+        if no_options > 0 and report:
             print no_options, 'objects found with local parent ID but no matching object.'
 
 def main():
