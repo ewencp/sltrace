@@ -124,6 +124,9 @@ class ObjectPathTracer : ITracer {
     }
 
     private void CheckMembership(Simulator sim, String primtype, Primitive prim) {
+        if (prim.ID == UUID.Zero)
+            return;
+
         lock(this) {
             if (mObjectsByLocalID.ContainsKey(prim.LocalID)) {
                 if (mObjectsByLocalID[prim.LocalID] != prim)
