@@ -143,6 +143,39 @@ class ObjectPathTrace:
         if no_options > 0 and report:
             print no_options, 'objects found with local parent ID but no matching object.'
 
+    def roots(self, ambiguous=False):
+        """
+        Returns a list of object IDs which are root objects, i.e. they do not
+        have a parent ID listed in the trace.
+
+        Keyword arguments:
+        ambiguous -- if an object has multiple addition events and they have
+                     conflicting child status (i.e. at one time it has a parent
+                     ID, at another it doesn't), this controls whether it is
+                     reported or not. (Default: False, i.e. they will not be
+                     reported)
+        """
+
+        obj_info = {} # obj -> (had_parent_bool, had_empty_parent_bool)
+        for addition in self.addition_events():
+            add_id = UUID(addition['id'])
+
+            # Make sure we have a record of the object
+            if add_id not in obj_info:
+                obj_info[add_id] = (False, False)
+
+            # Check if we need to mark as not having a parent or add parent to list
+            if 'parent_local' in addition:
+                obj_info[add_id] = (True, obj_info[add_id][1])
+            else:
+                obj_info[add_id] = (obj_info[add_id][0], True)
+
+        rootobjs = [objid for (objid,parentinfo) in obj_info.items()
+                    if parentinfo[1] and
+                    ((not parentinfo[0]) or (parentinfo[0] and ambiguous))]
+
+        return rootobjs
+
 def main():
     if len(sys.argv) < 2:
         print "Specify a file."
@@ -154,6 +187,7 @@ def main():
     print "Trace file:", sys.argv[1]
     print "Number of objects:", len(trace.objects())
     print "Number of avatars:", len(trace.avatars())
+    print "Number of root objects:", len(trace.roots())
 
     return 0
 
