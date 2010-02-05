@@ -203,6 +203,30 @@ class ObjectPathTrace:
 
         return parent_dict
 
+    def root_parents(self):
+        """
+        Returns a dict mapping object UUID -> root parent UUID. This is similar
+        to parents() but compresses the parent hierarchy to two levels: roots
+        and children.
+        """
+        parent_dict = self.parents()
+
+        flat_parent_dict = {}
+
+        for obj,par in parent_dict.items():
+            # Roots are handled easily
+            if not par:
+                flat_parent_dict[obj] = None
+                continue
+
+            # For children we need to find the root
+            while(parent_dict[par]):
+                par = parent_dict[par]
+            flat_parent_dict[obj] = par
+
+        return flat_parent_dict
+
+
 def main():
     if len(sys.argv) < 2:
         print "Specify a file."
