@@ -2,3 +2,4 @@ bin/
 deps/.installed*
 deps/.sysdepends
 deps/libomv
+*.pyc
