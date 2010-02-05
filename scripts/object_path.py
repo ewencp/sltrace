@@ -144,6 +144,8 @@ class ObjectPathTrace:
                     no_options += 1
                     continue
                 best_candidate = min(candidate_parents, key=lambda x:(parse_time(x['time'])-added_time))
+                evt['parent'] = best_candidate['id']
+
         if no_options > 0 and report:
             print no_options, 'objects found with local parent ID but no matching object.'
 
