@@ -58,6 +58,8 @@ class ObjectPathTrace:
         self._additions = None # List of addition events
         self._removals = None # List of removal events
 
+        self._filled_parents = False
+
     def objects(self):
         """Returns a list of object UUIDs encountered in this trace."""
         if not self._objects:
@@ -117,6 +119,8 @@ class ObjectPathTrace:
         because sometimes the parent object's local ID hasn't been registered
         when an addition event occurs.
         """
+        if self._filled_parents: return
+
         unfilled_parent_events = [x for x in self.addition_events()
                                   if 'parent' not in x and
                                   'parent_local' in x]
@@ -142,6 +146,8 @@ class ObjectPathTrace:
                 best_candidate = min(candidate_parents, key=lambda x:(parse_time(x['time'])-added_time))
         if no_options > 0 and report:
             print no_options, 'objects found with local parent ID but no matching object.'
+
+        self._filled_parents = True
 
     def roots(self, ambiguous=False):
         """
@@ -175,6 +181,27 @@ class ObjectPathTrace:
                     ((not parentinfo[0]) or (parentinfo[0] and ambiguous))]
 
         return rootobjs
+
+    def parents(self):
+        """
+        Returns a dict mapping object UUID -> parent UUID. For root objects the
+        parent UUID is None. The first parent found is always reported, i.e.
+        this method will not handle changes in object ownership.
+        """
+        self.fill_parents()
+
+        parent_dict = {}
+        # Just scan through additions, adding new found relationships
+        for addition in self.addition_events():
+            obj_id = UUID(addition['id'])
+            if obj_id in parent_dict: continue
+
+            par_id = None
+            if ('parent' in addition):
+                par_id = UUID(addition['parent'])
+            parent_dict[obj_id] = par_id
+
+        return parent_dict
 
 def main():
     if len(sys.argv) < 2:
