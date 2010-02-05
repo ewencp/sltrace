@@ -47,8 +47,52 @@ class JSONString : JSONValue {
     }
     private String mOrig;
 
+    private String Escape() {
+        String retval = @"""";
+
+        foreach(char c in mOrig) {
+            switch (c) {
+              case '\t':
+                retval += @"\t";
+                break;
+              case '\n':
+                retval += @"\n";
+                break;
+              case '\r':
+                retval += @"\r";
+                break;
+              case '\f':
+                retval += @"\f";
+                break;
+              case '\b':
+                retval += @"\b";
+                break;
+              case '<':
+                retval += @"\u003c";
+                break;
+              case '>':
+                retval += @"\u003e";
+                break;
+              case '"':
+                retval += "\\\"";
+                break;
+              case '\'':
+                retval += @"\u0027";
+                break;
+              case '\\':
+                retval += @"\\";
+                break;
+              default:
+                retval += c;
+                break;
+            }
+        }
+        retval += @"""";
+        return retval;
+    }
+
     public String Encoded {
-        get { return "\"" + mOrig + "\""; }
+        get { return Escape(); }
     }
 }
 class JSONBool : JSONValue {
