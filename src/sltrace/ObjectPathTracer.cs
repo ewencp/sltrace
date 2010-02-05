@@ -135,18 +135,21 @@ class ObjectPathTracer : ITracer {
             }
 
             if (mObjectsByID.ContainsKey(prim.ID)) {
-                Console.WriteLine("Conflicting global ID, but local ID wasn't found.");
-                return;
+                if (mObjectsByID[prim.ID] != prim)
+                    Console.WriteLine("Conflicting global ID for different prim instances: {0}.", prim.ID.ToString());
             }
 
             mObjectsByLocalID[prim.LocalID] = prim;
             mObjectsByID[prim.ID] = prim;
 
             Primitive parentPrim = null;
-            if (mObjectsByLocalID.ContainsKey(prim.ParentID))
+            bool known_parent = mObjectsByLocalID.ContainsKey(prim.ParentID);
+            if (known_parent)
                 parentPrim = mObjectsByLocalID[prim.ParentID];
             StoreNewObject(primtype, prim, prim.ParentID, parentPrim);
             RequestObjectProperties(sim, prim);
+            if (!known_parent && prim.ParentID != 0)
+                RequestObjectProperties(sim, prim.ParentID);
             ComputeBounds(prim);
         }
     }
@@ -175,6 +178,9 @@ class ObjectPathTracer : ITracer {
     private void RequestObjectProperties(Simulator sim, Primitive prim) {
         mParent.Client.Objects.SelectObject(sim, prim.LocalID);
     }
+    private void RequestObjectProperties(Simulator sim, uint primid) {
+        mParent.Client.Objects.SelectObject(sim, primid);
+    }
 
     private void ObjectDataBlockUpdateHandler(Simulator simulator, Primitive prim, Primitive.ConstructionData constructionData, ObjectUpdatePacket.ObjectDataBlock block, ObjectUpdate update, NameValue[] nameValues) {
         // Note: We can't do membership or really much useful here since the
@@ -192,7 +198,8 @@ class ObjectPathTracer : ITracer {
             JSONStringField("type", type);
             JSONUInt32Field("local", obj.LocalID);
             JSONUUIDField("id", obj.ID);
-            JSONUInt32Field("parent_local", parentLocal);
+            if (parentLocal != 0)
+                JSONUInt32Field("parent_local", parentLocal);
             if (parent != null)
                 JSONUUIDField("parent", parent.ID);
             mJSON.EndObject();
