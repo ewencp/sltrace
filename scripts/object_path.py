@@ -228,6 +228,58 @@ class ObjectPathTrace:
 
         return flat_parent_dict
 
+    def children(self):
+        """
+        Returns a dict mapping object UUID -> [list, of, child, UUIDs].  Only
+        direct children are included and all objects are included, i.e. objects
+        with no children have an empty list.
+        """
+        # We can easily construct what we need from the parent index
+        parent_dict = self.parents()
+        children_dict = {}
+
+        for obj in parent_dict: children_dict[obj] = []
+
+        for obj,parent in parent_dict.items():
+            # Ignore non-existant parents
+            if parent not in children_dict: continue
+
+            children_dict[parent].append(obj)
+
+        return children_dict
+
+    def all_children(self, type='roots'):
+        """
+        Gets a dict from object UUID -> [list, of, all, children, UUIDs].  Note
+        that this differs from children() in that it includes children,
+        grandchildren, and so on instead of just direct children. By default,
+        only root objects will be listed since this is usually the most useful,
+        but the type argument allows the user to adjust which are included.
+
+        Keyword arguments:
+        type -- specifies the type of objects to get the children of.  Options
+                are 'roots' (only root objects, i.e. those without their own
+                parents) and 'all' (all objects are included, possible with an
+                empty list of children). (Default: 'roots')
+        """
+        # Use the standard children map as a starting point
+        children_dict = self.children()
+
+        all_children_dict = {}
+        if type == 'roots':
+            for x in self.roots(): all_children_dict[x] = []
+        elif type == 'all':
+            for x in children_dict: all_children_dict[x] = []
+
+        for par,child_list in all_children_dict.items():
+            if par not in all_children_dict: continue
+            unprocessed_children = [par]
+            while(unprocessed_children):
+                next_child = unprocessed_children.pop()
+                child_list.extend(children_dict[next_child])
+                unprocessed_children.extend(children_dict[next_child])
+
+        return all_children_dict
 
 def main():
     if len(sys.argv) < 2:
