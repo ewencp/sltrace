@@ -119,6 +119,7 @@ class ObjectPathTracer : ITracer {
             JSONTimeSpanField("time", SinceStart);
             JSONVector3Field("min", vert_min);
             JSONVector3Field("max", vert_max);
+            JSONVector3Field("scale", prim.Scale);
             mJSON.EndObject();
         }
     }
