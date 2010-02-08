@@ -176,6 +176,31 @@ class ObjectPathTracer : ITracer {
         }
     }
 
+    // Note: Because we need to use this both for new prims/avatars and for
+    // ObjectUpdates, and ObjectUpdates don't update the primitive until *after*
+    // the callback, we need to pass the information in explicitly.
+    private void StoreLocationUpdate(Primitive prim, Vector3 pos, Vector3 vel, Quaternion rot, Vector3 angvel) {
+        lock(mJSON) {
+            mJSON.BeginObject();
+            JSONStringField("event", "loc");
+            JSONUUIDField("id", prim.ID);
+            JSONTimeSpanField("time", SinceStart);
+            JSONVector3Field("pos", pos);
+            JSONVector3Field("vel", vel);
+            JSONQuaternionField("rot", rot);
+            JSONVector3Field("angvel", angvel);
+            mJSON.EndObject();
+        }
+    }
+
+    private void StoreLocationUpdate(Primitive prim) {
+        StoreLocationUpdate(prim, prim.Position, prim.Velocity, prim.Rotation, prim.AngularVelocity);
+    }
+    private void StoreLocationUpdate(Primitive prim, ObjectUpdate update) {
+        StoreLocationUpdate(prim, update.Position, update.Velocity, update.Rotation, update.AngularVelocity);
+    }
+
+
     private void RequestObjectProperties(Simulator sim, Primitive prim) {
         mParent.Client.Objects.SelectObject(sim, prim.LocalID);
     }
@@ -227,29 +252,20 @@ class ObjectPathTracer : ITracer {
 
     private void NewAvatarHandler(Simulator simulator, Avatar avatar, ulong regionHandle, ushort timeDilation) {
         CheckMembership(simulator, "avatar", avatar);
+        StoreLocationUpdate(avatar);
     }
     private void NewPrimHandler(Simulator simulator, Primitive prim, ulong regionHandle, ushort timeDilation) {
         CheckMembership(simulator, "prim", prim);
+        StoreLocationUpdate(prim);
     }
     private void NewAttachmentHandler(Simulator simulator, Primitive prim, ulong regionHandle, ushort timeDilation) {
         CheckMembership(simulator, "attachment", prim);
+        StoreLocationUpdate(prim);
     }
 
     private void ObjectUpdatedTerseHandler(Simulator simulator, Primitive prim, ObjectUpdate update, ulong regionHandle, ushort timeDilation) {
         CheckMembership(simulator, "terse", prim);
-
-        // Position update
-        lock(mJSON) {
-            mJSON.BeginObject();
-            JSONStringField("event", "update");
-            JSONUUIDField("id", prim.ID);
-            JSONTimeSpanField("time", SinceStart);
-            JSONVector3Field("pos", update.Position);
-            JSONVector3Field("vel", update.Velocity);
-            JSONQuaternionField("rot", update.Rotation);
-            JSONVector3Field("angvel", update.AngularVelocity);
-            mJSON.EndObject();
-        }
+        StoreLocationUpdate(prim);
     }
 
     private void ObjectKilledHandler(Simulator simulator, uint objectID) {
