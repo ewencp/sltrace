@@ -124,7 +124,11 @@ class ObjectPathTracer : ITracer {
         }
     }
 
-    private void CheckMembership(Simulator sim, String primtype, Primitive prim) {
+    private void CheckMembershipWithLocation(Simulator sim, String primtype, Primitive prim) {
+        CheckMembership(sim, primtime, prim, true);
+    }
+
+    private void CheckMembership(Simulator sim, String primtype, Primitive prim, bool with_loc = false) {
         if (prim.ID == UUID.Zero)
             return;
 
@@ -147,11 +151,16 @@ class ObjectPathTracer : ITracer {
             bool known_parent = mObjectsByLocalID.ContainsKey(prim.ParentID);
             if (known_parent)
                 parentPrim = mObjectsByLocalID[prim.ParentID];
+
             StoreNewObject(primtype, prim, prim.ParentID, parentPrim);
+
             RequestObjectProperties(sim, prim);
             if (!known_parent && prim.ParentID != 0)
                 RequestObjectProperties(sim, prim.ParentID);
+
             ComputeBounds(prim);
+            if (with_loc)
+                StoreLocationUpdate(prim);
         }
     }
 
@@ -251,16 +260,13 @@ class ObjectPathTracer : ITracer {
 
 
     private void NewAvatarHandler(Simulator simulator, Avatar avatar, ulong regionHandle, ushort timeDilation) {
-        CheckMembership(simulator, "avatar", avatar);
-        StoreLocationUpdate(avatar);
+        CheckMembershipWithLocation(simulator, "avatar", avatar);
     }
     private void NewPrimHandler(Simulator simulator, Primitive prim, ulong regionHandle, ushort timeDilation) {
-        CheckMembership(simulator, "prim", prim);
-        StoreLocationUpdate(prim);
+        CheckMembershipWithLocation(simulator, "prim", prim);
     }
     private void NewAttachmentHandler(Simulator simulator, Primitive prim, ulong regionHandle, ushort timeDilation) {
-        CheckMembership(simulator, "attachment", prim);
-        StoreLocationUpdate(prim);
+        CheckMembershipWithLocation(simulator, "attachment", prim);
     }
 
     private void ObjectUpdatedTerseHandler(Simulator simulator, Primitive prim, ObjectUpdate update, ulong regionHandle, ushort timeDilation) {
