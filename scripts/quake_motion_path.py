@@ -25,13 +25,13 @@ def main():
     trace = ObjectPathTrace(sys.argv[1])
     trace.fill_parents(report=True)
 
-    roots = trace.roots()
+    motions = trace.motions(trace.roots())
 
-    pb = ProgressBar(len(roots))
+    pb = ProgressBar(len(motions))
 
     obj_count = 0
-    for objid in roots:
-        mot = trace.motion(objid).squeeze()
+    for objid,mot in motions.items():
+        mot.squeeze()
 
         # above the actual output to ensure it gets updated
         obj_count += 1

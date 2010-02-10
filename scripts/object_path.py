@@ -388,6 +388,24 @@ class ObjectPathTrace:
                      if UUID(evt['id']) == objid]
         return MotionPath(start=self._start_time, points=waypoints)
 
+    def motions(self, objid_set):
+        """
+        Extract MotionPaths for the objects listed in
+        objid_set. MotionPaths are returned as a dict of UUID ->
+        MotionPath.
+        """
+        waypoints = dict([(objid,[]) for objid in objid_set])
+        for evt in self.loc_events():
+            evt_id = UUID(evt['id'])
+            if evt_id not in waypoints: continue
+            waypoints[evt_id].append( (parse_time(evt['time']),parse_vec3(evt['pos'])) )
+
+        paths = {}
+        for objid,waypoints in waypoints.items():
+            paths[objid] = MotionPath(start=self._start_time, points=waypoints)
+
+        return paths
+
 def main():
     if len(sys.argv) < 2:
         print "Specify a file."
