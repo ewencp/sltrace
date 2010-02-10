@@ -190,8 +190,10 @@ class ObjectPathTrace:
 
     def roots(self, ambiguous=False):
         """
-        Returns a list of object IDs which are root objects, i.e. they do not
-        have a parent ID listed in the trace.
+        Returns a list of object IDs which are root objects, i.e. they
+        do not have a parent ID listed in the trace or they are an
+        avatar. (The exception for avatars is necessary since they can
+        have a parent if they are sitting on another object.)
 
         Keyword arguments:
         ambiguous -- if an object has multiple addition events and they have
@@ -201,6 +203,7 @@ class ObjectPathTrace:
                      reported)
         """
 
+        avatars = self.avatars()
         obj_info = {} # obj -> (had_parent_bool, had_empty_parent_bool)
         for addition in self.addition_events():
             add_id = UUID(addition['id'])
@@ -216,16 +219,20 @@ class ObjectPathTrace:
                 obj_info[add_id] = (obj_info[add_id][0], True)
 
         rootobjs = [objid for (objid,parentinfo) in obj_info.items()
-                    if parentinfo[1] and
-                    ((not parentinfo[0]) or (parentinfo[0] and ambiguous))]
+                    if objid in avatars or
+                    (parentinfo[1] and
+                     ((not parentinfo[0]) or (parentinfo[0] and ambiguous))
+                     )]
 
         return rootobjs
 
     def parents(self):
         """
-        Returns a dict mapping object UUID -> parent UUID. For root objects the
-        parent UUID is None. The first parent found is always reported, i.e.
-        this method will not handle changes in object ownership.
+        Returns a dict mapping object UUID -> parent UUID. For root
+        objects the parent UUID is None. The first parent found is
+        always reported, i.e.  this method will not handle changes in
+        object ownership.  Note that avatars are reported as having
+        parents since it is required to compute positions.
         """
         self.fill_parents()
 
@@ -248,18 +255,19 @@ class ObjectPathTrace:
         to parents() but compresses the parent hierarchy to two levels: roots
         and children.
         """
+        roots = self.roots()
         parent_dict = self.parents()
 
         flat_parent_dict = {}
 
         for obj,par in parent_dict.items():
             # Roots are handled easily
-            if not par:
+            if obj in roots:
                 flat_parent_dict[obj] = None
                 continue
 
             # For children we need to find the root
-            while(parent_dict[par]):
+            while(par not in roots and parent_dict[par]):
                 par = parent_dict[par]
             flat_parent_dict[obj] = par
 
