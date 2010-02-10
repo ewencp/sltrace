@@ -6,7 +6,7 @@ try:
 except:
     import json
 from uuid import UUID
-import math
+import vec3
 
 def parse_time(val):
     """
@@ -22,21 +22,6 @@ def parse_vec3(val):
     """
     assert ('x' in val and 'y' in val and 'z' in val)
     return ( float(val['x']), float(val['y']), float(val['z']) )
-
-def mult_vec3(val, scale):
-    return ( val[0] * scale[0], val[1] * scale[1], val[2] * scale[2] )
-
-def len_vec3(v):
-    return math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])
-
-def dist_vec3(v1, v2):
-    return len_vec3((v1[0]-v2[0],v1[1]-v2[1],v1[2]-v2[2]))
-
-def min_vec3(v1, v2):
-    return (min(v1[0],v2[0]), min(v1[1],v2[1]), min(v1[2],v2[2]))
-
-def max_vec3(v1, v2):
-    return (max(v1[0],v2[0]), max(v1[1],v2[1]), max(v1[2],v2[2]))
 
 class ObjectPathTrace:
     """
@@ -341,9 +326,9 @@ class ObjectPathTrace:
             if size_id not in objids: continue
             if size_id in obj_sizes: continue # only use the first size value
             bbox_scale = parse_vec3(size_evt['scale'])
-            bbox_min = mult_vec3(parse_vec3(size_evt['min']), bbox_scale)
-            bbox_max = mult_vec3(parse_vec3(size_evt['max']), bbox_scale)
-            r = dist_vec3(bbox_min, bbox_max) * 0.5
+            bbox_min = vec3.mult(parse_vec3(size_evt['min']), bbox_scale)
+            bbox_max = vec3.mult(parse_vec3(size_evt['max']), bbox_scale)
+            r = vec3.dist(bbox_min, bbox_max) * 0.5
             obj_sizes[size_id] = (bbox_min, bbox_max)
 
         return obj_sizes
@@ -386,8 +371,8 @@ class ObjectPathTrace:
                 child_update = first_updates[child]
                 child_offset = parse_vec3(child_update['pos'])
                 child_bbox_min,child_bbox_max = obj_sizes[child]
-                bbox_min = min_vec3(bbox_min, child_bbox_min)
-                bbox_max = min_vec3(bbox_max, child_bbox_max)
+                bbox_min = vec3.min(bbox_min, child_bbox_min)
+                bbox_max = vec3.min(bbox_max, child_bbox_max)
 
             agg_sizes[parent] = (bbox_min, bbox_max)
 
