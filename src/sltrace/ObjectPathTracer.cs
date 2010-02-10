@@ -125,10 +125,14 @@ class ObjectPathTracer : ITracer {
     }
 
     private void CheckMembershipWithLocation(Simulator sim, String primtype, Primitive prim) {
-        CheckMembership(sim, primtime, prim, true);
+        CheckMembership(sim, primtype, prim, true);
     }
 
-    private void CheckMembership(Simulator sim, String primtype, Primitive prim, bool with_loc = false) {
+    private void CheckMembership(Simulator sim, String primtype, Primitive prim) {
+        CheckMembership(sim, primtype, prim, false);
+    }
+
+    private void CheckMembership(Simulator sim, String primtype, Primitive prim, bool with_loc) {
         if (prim.ID == UUID.Zero)
             return;
 
