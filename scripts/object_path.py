@@ -7,6 +7,7 @@ except:
     import json
 from uuid import UUID
 import vec3
+from motion_path import MotionPath
 
 def parse_time(val):
     """
@@ -377,6 +378,15 @@ class ObjectPathTrace:
             agg_sizes[parent] = (bbox_min, bbox_max)
 
         return agg_sizes
+
+    def motion(self, objid):
+        """
+        Extract a MotionPath for the object with the specified UUID.
+        """
+        waypoints = [(parse_time(evt['time']),parse_vec3(evt['pos']))
+                     for evt in self.loc_events()
+                     if UUID(evt['id']) == objid]
+        return MotionPath(start=self._start_time, points=waypoints)
 
 def main():
     if len(sys.argv) < 2:

@@ -21,3 +21,13 @@ def min(v1, v2):
 
 def max(v1, v2):
     return (__max(v1[0],v2[0]), __max(v1[1],v2[1]), __max(v1[2],v2[2]))
+
+def equals(v1, v2):
+    if v1 == None and v2 == None:
+        return True
+    if v1 == None or v2 == None:
+        return False
+
+    return (v1[0] == v2[0] and
+            v1[1] == v2[1] and
+            v1[2] == v2[2])
