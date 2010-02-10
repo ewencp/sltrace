@@ -6,6 +6,7 @@ try:
 except:
     import json
 from uuid import UUID
+import math
 
 def parse_time(val):
     """
@@ -14,6 +15,28 @@ def parse_time(val):
     """
     assert(val[-2:] == 'ms')
     return (float(val[:-2]) / 1000.0)
+
+def parse_vec3(val):
+    """
+    Parses a JSON encoded Vector3, returing it as a 3-tuple (x,y,z).
+    """
+    assert ('x' in val and 'y' in val and 'z' in val)
+    return ( float(val['x']), float(val['y']), float(val['z']) )
+
+def mult_vec3(val, scale):
+    return ( val[0] * scale[0], val[1] * scale[1], val[2] * scale[2] )
+
+def len_vec3(v):
+    return math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])
+
+def dist_vec3(v1, v2):
+    return len_vec3((v1[0]-v2[0],v1[1]-v2[1],v1[2]-v2[2]))
+
+def min_vec3(v1, v2):
+    return (min(v1[0],v2[0]), min(v1[1],v2[1]), min(v1[2],v2[2]))
+
+def max_vec3(v1, v2):
+    return (max(v1[0],v2[0]), max(v1[1],v2[1]), max(v1[2],v2[2]))
 
 class ObjectPathTrace:
     """
@@ -57,6 +80,8 @@ class ObjectPathTrace:
         # 2) By event type
         self._additions = None # List of addition events
         self._removals = None # List of removal events
+        self._sizes = None # List of size events
+        self._locupdates = None # List of loc update events
 
         self._filled_parents = False
 
@@ -110,6 +135,18 @@ class ObjectPathTrace:
         if not self._additions:
             self._additions = [x for x in self._orig if x['event'] == 'kill']
         return self._additions
+
+    def size_events(self):
+        """Returns a list of size events in this trace."""
+        if not self._sizes:
+            self._sizes = [x for x in self._orig if x['event'] == 'size']
+        return self._sizes
+
+    def loc_events(self):
+        """Returns a list of loc update events in this trace."""
+        if not self._locupdates:
+            self._locupdates = [x for x in self._orig if x['event'] == 'loc']
+        return self._locupdates
 
 
     def fill_parents(self, report=False):
@@ -280,6 +317,73 @@ class ObjectPathTrace:
                 unprocessed_children.extend(children_dict[next_child])
 
         return all_children_dict
+
+    def sizes(self):
+        """
+        Extract the sizes of each prim in the trace, returning a dict
+        of UUID -> (bbox_min_vec, bbox_max_vec), where both are
+        3-tuples representing Vector3s. The bounding box will be
+        transformed by object transformations (scale, rotate) but will
+        not be in world-space (not translated w.r.t. the parent).
+        """
+        objids = self.objects()
+        obj_sizes = {}
+        for size_evt in self.size_events():
+            size_id = UUID(size_evt['id'])
+            if size_id not in objids: continue
+            if size_id in obj_sizes: continue # only use the first size value
+            bbox_scale = parse_vec3(size_evt['scale'])
+            bbox_min = mult_vec3(parse_vec3(size_evt['min']), bbox_scale)
+            bbox_max = mult_vec3(parse_vec3(size_evt['max']), bbox_scale)
+            r = dist_vec3(bbox_min, bbox_max) * 0.5
+            obj_sizes[size_id] = (bbox_min, bbox_max)
+
+        return obj_sizes
+
+    def aggregate_sizes(self):
+        """
+        Extract the sizes of each "object" in the trace, returning a
+        dict of UUID -> (bbox_min_vec, bbox_max_vec). This is similar
+        to sizes() but the dict only contains root objects, and the
+        sizes include the sizes of the children (with appropriate
+        translation w.r.t. the parent.
+
+        Note that this is not guaranteed to be precise, especially
+        since the aggregate bounding box can change over time (even
+        adding and removing children objects, as well as having them
+        move relative to the root object).
+        """
+        root_children = self.all_children(type='roots')
+        obj_sizes = self.sizes()
+        additions = self.addition_events()
+
+        # Extract first updates for each object
+        first_updates = {}
+        for evt in self.loc_events():
+            evt_id = UUID(evt['id'])
+            if evt_id in first_updates: continue
+            first_updates[evt_id] = evt
+
+        # For each parent object, aggregate all child info
+        agg_sizes = {}
+        for parent,children in root_children.items():
+            parent_update = first_updates[parent]
+            parent_pos = parse_vec3(parent_update['pos'])
+            bbox_min,bbox_max = obj_sizes[parent]
+            # We assume that the center of the parent object is the
+            # center of the bounding sphere. We just need to compute a
+            # radius for each sub object, which is distance
+            # (parent_center, child_center) + child radius.
+            for child in children:
+                child_update = first_updates[child]
+                child_offset = parse_vec3(child_update['pos'])
+                child_bbox_min,child_bbox_max = obj_sizes[child]
+                bbox_min = min_vec3(bbox_min, child_bbox_min)
+                bbox_max = min_vec3(bbox_max, child_bbox_max)
+
+            agg_sizes[parent] = (bbox_min, bbox_max)
+
+        return agg_sizes
 
 def main():
     if len(sys.argv) < 2:
