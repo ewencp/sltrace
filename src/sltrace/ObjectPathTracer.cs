@@ -52,6 +52,7 @@ class ObjectPathTracer : ITracer {
 
         mObjectsByLocalID = new Dictionary<uint, Primitive>();
         mObjectsByID = new Dictionary<UUID, Primitive>();
+        mObjectParents = new Dictionary<UUID, uint>();
 
         mParent.Client.Objects.OnObjectDataBlockUpdate +=
             new ObjectManager.ObjectDataBlockUpdateCallback(this.ObjectDataBlockUpdateHandler);
@@ -138,14 +139,17 @@ class ObjectPathTracer : ITracer {
 
         lock(this) {
             if (mObjectsByLocalID.ContainsKey(prim.LocalID)) {
-                if (mObjectsByLocalID[prim.LocalID] != prim)
+                if (mObjectsByLocalID[prim.LocalID] != prim) {
                     Console.WriteLine("Object addition for existing local id: " + prim.LocalID.ToString());
-                return;
+                    return;
+                }
             }
 
+            bool is_update = false;
             if (mObjectsByID.ContainsKey(prim.ID)) {
                 if (mObjectsByID[prim.ID] != prim)
                     Console.WriteLine("Conflicting global ID for different prim instances: {0}.", prim.ID.ToString());
+                is_update = true;
             }
 
             mObjectsByLocalID[prim.LocalID] = prim;
@@ -156,7 +160,18 @@ class ObjectPathTracer : ITracer {
             if (known_parent)
                 parentPrim = mObjectsByLocalID[prim.ParentID];
 
-            StoreNewObject(primtype, prim, prim.ParentID, parentPrim);
+            // Either this is brand new, or its an update and we should only
+            // store the object if an important feature has changed. Currently
+            // the only important feature we track is ParentID.
+            if (!is_update ||
+                mObjectParents[prim.ID] != prim.ParentID)
+                StoreNewObject(primtype, prim, prim.ParentID, parentPrim);
+
+            mObjectParents[prim.ID] = prim.ParentID;
+
+
+            if (is_update) // Everything else should only happen for brand new objects
+                return;
 
             RequestObjectProperties(sim, prim);
             if (!known_parent && prim.ParentID != 0)
@@ -175,6 +190,7 @@ class ObjectPathTracer : ITracer {
                 Primitive prim = mObjectsByLocalID[localid];
                 mObjectsByLocalID.Remove(localid);
                 mObjectsByID.Remove(prim.ID);
+                mObjectParents.Remove(prim.ID);
                 fullid = prim.ID;
             }
         }
@@ -333,6 +349,8 @@ class ObjectPathTracer : ITracer {
                                                            // objects, by LocalID
     private Dictionary<UUID, Primitive> mObjectsByID; // All tracked objects, by
                                                       // global UUID
+    private Dictionary<UUID, uint> mObjectParents; // LocalID of parents of all
+                                                   // tracked objects
 
     private JSON mJSON; // Stores JSON formatted output event stream
 } // class RawPacketTracer
