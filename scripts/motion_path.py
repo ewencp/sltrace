@@ -35,16 +35,24 @@ class MotionPath:
     def points(self):
         return [p for ts,p in self._points]
 
-    def squeeze(self):
+    def squeeze(self, fudge=0.0):
         """
         "Squeeze" this motion path by getting rid of duplicate or
         close to duplicate neighboring updates.
+
+        Keyword arguments:
+        fudge -- a distance to allow between two points under which
+        they will still be considered equal, so small floating point
+        errors or tiny movements are discarded
         """
+
+        equals_func = vec3.equals
+        if fudge > 0.0: equals_func = vec3.create_delta_equals(fudge)
 
         last = None
         new_points = []
         for time,point in self._points:
-            if vec3.equals(point, last): continue
+            if equals_func(point, last): continue
 
             new_points.append( (time,point) )
             last = point

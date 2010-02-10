@@ -31,7 +31,7 @@ def main():
 
     obj_count = 0
     for objid,mot in motions.items():
-        mot.squeeze()
+        mot.squeeze(fudge=.05)
 
         # above the actual output to ensure it gets updated
         obj_count += 1
