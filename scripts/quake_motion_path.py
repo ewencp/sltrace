@@ -11,6 +11,7 @@ import sys
 import os, os.path
 from motion_path import MotionPath
 from object_path import ObjectPathTrace
+from util.progress_bar import ProgressBar
 
 def main():
     if len(sys.argv) < 2:
@@ -24,8 +25,19 @@ def main():
     trace = ObjectPathTrace(sys.argv[1])
     trace.fill_parents(report=True)
 
-    for objid in trace.roots():
+    roots = trace.roots()
+
+    pb = ProgressBar(len(roots))
+
+    obj_count = 0
+    for objid in roots:
         mot = trace.motion(objid).squeeze()
+
+        # above the actual output to ensure it gets updated
+        obj_count += 1
+        pb.update(obj_count)
+        pb.report()
+
         if len(mot) <= 1: continue
 
         outfilename = os.path.join(output_dir, str(objid) + '.txt')
@@ -36,6 +48,8 @@ def main():
                 line = "%d: %f, %f, %f, %d" % (idx, pos[0], pos[2], pos[1], int(t*1000))
                 print >>fout, line
                 idx += 1
+
+    pb.finish()
 
     return 0
 
