@@ -35,6 +35,7 @@ def main():
         col = colors.get_random_color()
 
         for mot in mots:
+            mot.squeeze(fudge=0.05)
             if len(mot) <= 1: continue
 
             first_t, first_pos = mot[0]
