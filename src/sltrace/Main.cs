@@ -68,11 +68,11 @@ class SLTrace {
         //session.AddTracer(new RawPacketTracer());
         session.AddTracer(new ObjectPathTracer());
 
-        if (arg_map.ContainsKey("controller")) {
-            string controller_args =
-                arg_map.ContainsKey("controller-args") ? arg_map["controller-args"] : null;
-            session.Controller = controllerFactory.Create(arg_map["controller"], controller_args);
-        }
+        string controller_type =
+            arg_map.ContainsKey("controller") ? arg_map["controller"] : "static-rotating";
+        string controller_args =
+            arg_map.ContainsKey("controller-args") ? arg_map["controller-args"] : null;
+        session.Controller = controllerFactory.Create(controller_type, controller_args);
 
         session.Run();
     }
