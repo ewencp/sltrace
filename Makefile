@@ -5,6 +5,7 @@ SLTRACE_SOURCES=src/sltrace/Main.cs
 SLTRACE_SOURCES+=src/sltrace/AssemblyInfo.cs
 SLTRACE_SOURCES+=src/sltrace/JSON.cs
 SLTRACE_SOURCES+=src/sltrace/Config.cs
+SLTRACE_SOURCES+=src/sltrace/Arguments.cs
 SLTRACE_SOURCES+=src/sltrace/TraceSession.cs
 SLTRACE_SOURCES+=src/sltrace/ITracer.cs
 SLTRACE_SOURCES+=src/sltrace/ObjectPathTracer.cs

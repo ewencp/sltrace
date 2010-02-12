@@ -1,5 +1,5 @@
 /*  SLTrace
- *  Main.cs
+ *  Arguments.cs
  *
  *  Copyright (c) 2010, Ewen Cheslack-Postava
  *  All rights reserved.
@@ -31,50 +31,38 @@
  */
 
 using System;
-using System.IO;
 using System.Collections.Generic;
 
 namespace SLTrace {
 
-/** SLTrace is the main trace class -- it load configs, sets up the client
- *  connection, starts and stops logging.
- */
-class SLTrace {
-    static void Main(string[] args) {
-        // Try to extract information about where the binary is so we can
-        // specify in the Config where to search for other binaries
-        string[] clargs = Environment.GetCommandLineArgs();
-        if (clargs.Length == 0 || String.IsNullOrEmpty(clargs[0])) {
-            Console.WriteLine("Invalid program name in command line arguments.");
-            Environment.Exit(-1);
-            return;
-        }
-        string progname = Path.GetFullPath(clargs[0]);
-        if (!File.Exists(progname)) {
-            Console.WriteLine("Couldn't find full path to binary.");
-            Environment.Exit(-1);
-            return;
-        }
-        string progdir = Path.GetDirectoryName(progname);
+class Arguments {
 
-        Dictionary<string, string> arg_map = Arguments.Parse(args);
+    /** Tries to split an argument into a key-value pair according to the format
+     *  --key=value.
+     */
+    public static void AsKeyValue(string arg, out string key, out string value) {
+        string[] parts = arg.Split(new Char[] {'='}, 2);
 
-        ControllerFactory controllerFactory = new ControllerFactory();
-        controllerFactory.Register("static-rotating", args_string => new StaticRotatingController(args_string) );
+        string keyout = parts[0];
+        string valueout = parts.Length > 1 ? parts[1] : "";
 
-        Config config = new Config(progdir);
-        TraceSession session = new TraceSession(config);
+        keyout = keyout.Trim('-');
 
-        //session.AddTracer(new RawPacketTracer());
-        session.AddTracer(new ObjectPathTracer());
-
-        if (arg_map.ContainsKey("controller")) {
-            string controller_args =
-                arg_map.ContainsKey("controller-args") ? arg_map["controller-args"] : null;
-            session.Controller = controllerFactory.Create(arg_map["controller"], controller_args);
-        }
-
-        session.Run();
+        key = keyout;
+        value = valueout;
     }
-} // class SLTrace
+
+    /** Parses a sequence of arguments into a dictionary of key-value pairs. */
+    public static Dictionary<string, string> Parse(IEnumerable<string> args) {
+        Dictionary<string, string> arg_dict = new Dictionary<string, string>();
+        foreach(string arg in args) {
+            string key, value;
+            AsKeyValue(arg, out key, out value);
+            arg_dict.Add(key, value);
+        }
+        return arg_dict;
+    }
+
+} // class Arguments
+
 } // namespace SLTrace
