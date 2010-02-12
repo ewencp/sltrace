@@ -291,7 +291,7 @@ class ObjectPathTracer : ITracer {
 
     private void ObjectUpdatedTerseHandler(Simulator simulator, Primitive prim, ObjectUpdate update, ulong regionHandle, ushort timeDilation) {
         CheckMembership(simulator, "terse", prim);
-        StoreLocationUpdate(prim);
+        StoreLocationUpdate(prim, update);
     }
 
     private void ObjectKilledHandler(Simulator simulator, uint objectID) {
