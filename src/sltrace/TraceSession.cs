@@ -105,7 +105,8 @@ class TraceSession {
         DateTime start = DateTime.Now;
         while(true) {
             System.Threading.Thread.Sleep(1000);
-            mController.Update();
+            if (mController != null)
+                mController.Update();
             if (DateTime.Now - start > mConfig.Duration)
                 break;
         }
