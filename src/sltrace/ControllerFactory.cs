@@ -1,5 +1,5 @@
 /*  SLTrace
- *  Main.cs
+ *  ControllerFactory.cs
  *
  *  Copyright (c) 2010, Ewen Cheslack-Postava
  *  All rights reserved.
@@ -31,43 +31,28 @@
  */
 
 using System;
-using System.IO;
+using System.Collections.Generic;
 
 namespace SLTrace {
 
-/** SLTrace is the main trace class -- it load configs, sets up the client
- *  connection, starts and stops logging.
- */
-class SLTrace {
-    static void Main(string[] args) {
-        // Try to extract information about where the binary is so we can
-        // specify in the Config where to search for other binaries
-        string[] clargs = Environment.GetCommandLineArgs();
-        if (clargs.Length == 0 || String.IsNullOrEmpty(clargs[0])) {
-            Console.WriteLine("Invalid program name in command line arguments.");
-            Environment.Exit(-1);
-            return;
-        }
-        string progname = Path.GetFullPath(clargs[0]);
-        if (!File.Exists(progname)) {
-            Console.WriteLine("Couldn't find full path to binary.");
-            Environment.Exit(-1);
-            return;
-        }
-        string progdir = Path.GetDirectoryName(progname);
+class ControllerFactory {
+    public delegate IController ControllerConstructor(string args_string);
 
-        ControllerFactory controllerFactory = new ControllerFactory();
-        controllerFactory.Register("static-rotating", args_string => new StaticRotatingController(args_string) );
-
-        Config config = new Config(progdir);
-        TraceSession session = new TraceSession(config);
-
-        //session.AddTracer(new RawPacketTracer());
-        session.AddTracer(new ObjectPathTracer());
-
-        session.Controller = controllerFactory.Create("static-rotating", "--period=30s");
-
-        session.Run();
+    public ControllerFactory() {
+        mConstructors = new Dictionary<string, ControllerConstructor>();
     }
-} // class SLTrace
+
+    public void Register(string name, ControllerConstructor construct) {
+        mConstructors.Add(name, construct);
+    }
+
+    public IController Create(string name, string args_string) {
+        if (!mConstructors.ContainsKey(name))
+            return null;
+        return mConstructors[name](args_string);
+    }
+
+    private Dictionary<string, ControllerConstructor> mConstructors;
+} // class ControllerFactory
+
 } // namespace SLTrace

@@ -40,10 +40,10 @@ namespace SLTrace {
  *  an approximate specified rate, surveying the entire region surrounding it.
  */
 class StaticRotatingController : IController {
-    public StaticRotatingController(TimeSpan rotate_period) {
+    public StaticRotatingController(string args) {
         mGridClient = null;
         mAgentManager = null;
-        mPeriod = rotate_period;
+        mPeriod = TimeSpan.FromSeconds(30);
 
         mLastUpdate = DateTime.Now;
         mAngle = 0.0f;

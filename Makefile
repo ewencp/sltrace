@@ -11,6 +11,7 @@ SLTRACE_SOURCES+=src/sltrace/ObjectPathTracer.cs
 SLTRACE_SOURCES+=src/sltrace/RawPacketTracer.cs
 SLTRACE_SOURCES+=src/sltrace/IController.cs
 SLTRACE_SOURCES+=src/sltrace/StaticRotatingController.cs
+SLTRACE_SOURCES+=src/sltrace/ControllerFactory.cs
 SLTRACE_REFDIRS=bin/
 SLTRACE_REFS=OpenMetaverse,OpenMetaverseTypes
 SLTRACE_BIN=${BIN_DIR}/sltrace.exe
