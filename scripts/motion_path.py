@@ -35,6 +35,14 @@ class MotionPath:
     def points(self):
         return [p for ts,p in self._points]
 
+    def start_time(self):
+        first_update_t,first_update_pos = self._points[0]
+        return first_update_t
+
+    def end_time(self):
+        last_update_t,last_update_pos = self._points[-1]
+        return last_update_t
+
     def squeeze(self, fudge=0.0):
         """
         "Squeeze" this motion path by getting rid of duplicate or
@@ -59,3 +67,26 @@ class MotionPath:
 
         self._points = new_points
         return self
+
+    def interpolate(self, t):
+        """
+        Interpolates the position of the object on this path at the
+        specified time.  Times outside the range of updates are always
+        clamped to the first or last location update.
+        """
+
+        # Standard bounds checks
+        first_update_t,first_update_pos = self._points[0]
+        if t <= first_update_t: return first_update_pos
+
+        last_update_t,last_update_pos = self._points[-1]
+        if t >= last_update_t: return last_update_pos
+
+        # Otherwise, find the right pair of updates
+        prev_t,prev_pos = self._points[0]
+        for cur_t,cur_pos in self._points:
+            if t >= prev_t and t < cur_t:
+                alpha = float(t - prev_t) / float(cur_t - prev_t)
+                return vec3.add(vec3.scale(cur_pos, alpha), vec3.scale(prev_pos, (1.0 - alpha)))
+
+            prev_t,prev_pos = cur_t,cur_pos
