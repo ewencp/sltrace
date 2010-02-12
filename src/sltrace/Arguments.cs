@@ -68,6 +68,8 @@ class Arguments {
      *  " --".
      */
     public static string[] Split(string args_as_string) {
+        if (String.IsNullOrEmpty(args_as_string))
+            return new string[] {};
         // FIXME this is a bit naive, we really need to also handle quoted args
         // as well
         string[] args = args_as_string.Split(' ');
