@@ -63,6 +63,17 @@ class Arguments {
         return arg_dict;
     }
 
+    /** Splits a string containing a sequence of arguments into an array of
+     *  individual arguments. Arguments are denoted by the starting characters
+     *  " --".
+     */
+    public static string[] Split(string args_as_string) {
+        // FIXME this is a bit naive, we really need to also handle quoted args
+        // as well
+        string[] args = args_as_string.Split(' ');
+        return args;
+    }
+
 } // class Arguments
 
 } // namespace SLTrace

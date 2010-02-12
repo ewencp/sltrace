@@ -33,6 +33,7 @@
 using System;
 using System.Diagnostics;
 using OpenMetaverse;
+using System.Collections.Generic;
 
 namespace SLTrace {
 
@@ -41,9 +42,16 @@ namespace SLTrace {
  */
 class StaticRotatingController : IController {
     public StaticRotatingController(string args) {
+        string[] split_args = Arguments.Split(args);
+        Dictionary<string, string> arg_map = Arguments.Parse(split_args);
+
         mGridClient = null;
         mAgentManager = null;
         mPeriod = TimeSpan.FromSeconds(30);
+        if (arg_map.ContainsKey("period")) {
+            string period_string = arg_map["period"];
+            mPeriod = TimeSpan.Parse(period_string);
+        }
 
         mLastUpdate = DateTime.Now;
         mAngle = 0.0f;
