@@ -44,6 +44,15 @@ namespace SLTrace {
  */
 class ObjectPathTracer : ITracer {
     public ObjectPathTracer(string args_string) {
+        mTraceFilename = "object_paths.json";
+
+        string[] split_args = Arguments.Split(args_string);
+        Dictionary<string, string> arg_map = Arguments.Parse(split_args);
+
+        if (arg_map.ContainsKey("o"))
+           mTraceFilename = arg_map["o"];
+        if (arg_map.ContainsKey("out"))
+           mTraceFilename = arg_map["out"];
     }
 
     public void StartTrace(TraceSession parent) {
@@ -86,7 +95,7 @@ class ObjectPathTracer : ITracer {
 
         // We output JSON, one giant list of events
         System.IO.TextWriter streamWriter =
-            new System.IO.StreamWriter("object_paths.txt");
+            new System.IO.StreamWriter(mTraceFilename);
         mJSON = new JSON(streamWriter);
         mJSON.BeginArray();
 
@@ -345,6 +354,7 @@ class ObjectPathTracer : ITracer {
         get { return mObjectsByLocalID.Values.Where(obj => obj.ParentID == 0); }
     }
 
+    private string mTraceFilename;
     private TraceSession mParent;
     IRendering mRenderer;
     private DateTime mStartTime;
