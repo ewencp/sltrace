@@ -467,8 +467,7 @@ class ObjectPathTrace:
             elif evt['event'] == 'add':
                 new_parent = None
                 if 'parent' in evt: new_parent = UUID(evt['parent'])
-                if new_parent != last_parent[evt_id]:
-                    need_new_subseq = True
+                need_new_subseq = (new_parent != last_parent[evt_id])
 
             if need_new_subseq:
                 if cur_subseq[evt_id]: subseqs[evt_id].append( (last_parent[evt_id], cur_subseq[evt_id]) )
@@ -476,7 +475,7 @@ class ObjectPathTrace:
                 last_parent[evt_id] = new_parent
         # if non-empty, append the last subsequence
         for objid,cursub in cur_subseq.items():
-            if cursub: subseqs[objid].append( (last_parent[evt_id],cursub) )
+            if cursub: subseqs[objid].append( (last_parent[objid],cursub) )
 
         # Generate waypoint lists from event lists
         results = {}
@@ -505,13 +504,13 @@ class ObjectPathTrace:
         called, and any missing parents are ignored.
         """
         # We use the list of parent,motion lists for each object to
-        # bootstrap. Generate and squeeze.
+        # bootstrap. Generate but *don't* squeeze since a relative
+        # position that is constant may turn into a varying
+        # sim-relative position.
         # FIXME This could be more efficient by computing only the
         # parents, grandparents, etc that are required for the
         # specified object set instead of using self.objects()
         path_seqs = self.motion_sequences_with_parents(self.objects())
-        for objid,mots in path_seqs.items():
-            for par,mot in mots: mot.squeeze()
 
         # Returns (parent,motion_path) for the specified object and
         # time, i.e. gets the subsequence at the appropriate time.
@@ -524,7 +523,7 @@ class ObjectPathTrace:
         def get_par_motion_for_time(objid, time):
             last_par, last_mot = path_seqs[objid][0]
             for par,mot in path_seqs[objid]:
-                if time > mot.end_time(): break
+                if time < mot.start_time(): break
                 last_par, last_mot = par, mot
             return (last_par,last_mot)
 
