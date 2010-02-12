@@ -43,6 +43,9 @@ namespace SLTrace {
  *  interest set, position and velocity updates, size updates, etc.
  */
 class ObjectPathTracer : ITracer {
+    public ObjectPathTracer(string args_string) {
+    }
+
     public void StartTrace(TraceSession parent) {
         mParent = parent;
 

@@ -62,17 +62,25 @@ class SLTrace {
         ControllerFactory controllerFactory = new ControllerFactory();
         controllerFactory.Register("static-rotating", args_string => new StaticRotatingController(args_string) );
 
+        TracerFactory tracerFactory = new TracerFactory();
+        tracerFactory.Register("raw-packet", args_string => new RawPacketTracer(args_string) );
+        tracerFactory.Register("object-path", args_string => new ObjectPathTracer(args_string) );
+
         Config config = new Config(progdir, arg_map);
         TraceSession session = new TraceSession(config);
-
-        //session.AddTracer(new RawPacketTracer());
-        session.AddTracer(new ObjectPathTracer());
 
         string controller_type =
             arg_map.ContainsKey("controller") ? arg_map["controller"] : "static-rotating";
         string controller_args =
             arg_map.ContainsKey("controller-args") ? arg_map["controller-args"] : null;
         session.Controller = controllerFactory.Create(controller_type, controller_args);
+
+        string tracer_type =
+            arg_map.ContainsKey("tracer") ? arg_map["tracer"] : "object-path";
+        string tracer_args =
+            arg_map.ContainsKey("tracer-args") ? arg_map["tracer-args"] : null;
+        ITracer tracer = tracerFactory.Create(tracer_type, tracer_args);
+        session.AddTracer(tracer);
 
         session.Run();
     }

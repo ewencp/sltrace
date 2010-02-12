@@ -10,6 +10,7 @@ SLTRACE_SOURCES+=src/sltrace/TraceSession.cs
 SLTRACE_SOURCES+=src/sltrace/ITracer.cs
 SLTRACE_SOURCES+=src/sltrace/ObjectPathTracer.cs
 SLTRACE_SOURCES+=src/sltrace/RawPacketTracer.cs
+SLTRACE_SOURCES+=src/sltrace/TracerFactory.cs
 SLTRACE_SOURCES+=src/sltrace/IController.cs
 SLTRACE_SOURCES+=src/sltrace/StaticRotatingController.cs
 SLTRACE_SOURCES+=src/sltrace/ControllerFactory.cs

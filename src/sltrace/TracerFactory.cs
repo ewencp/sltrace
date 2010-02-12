@@ -1,5 +1,5 @@
 /*  SLTrace
- *  RawPacketTracer.cs
+ *  TracerFactory.cs
  *
  *  Copyright (c) 2010, Ewen Cheslack-Postava
  *  All rights reserved.
@@ -31,34 +31,28 @@
  */
 
 using System;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
+using System.Collections.Generic;
 
 namespace SLTrace {
 
-/** Records a raw packet trace. */
-class RawPacketTracer : ITracer {
-    public RawPacketTracer(string args_string) {
+class TracerFactory {
+    public delegate ITracer TracerConstructor(string args_string);
+
+    public TracerFactory() {
+        mConstructors = new Dictionary<string, TracerConstructor>();
     }
 
-    public void StartTrace(TraceSession parent) {
-        mParent = parent;
-
-        mParent.Client.Network.RegisterCallback(
-            PacketType.Default,
-            new NetworkManager.PacketCallback(this.PacketHandler)
-        );
+    public void Register(string name, TracerConstructor construct) {
+        mConstructors.Add(name, construct);
     }
 
-    public void StopTrace() {
-        // No need to unregister
+    public ITracer Create(string name, string args_string) {
+        if (!mConstructors.ContainsKey(name))
+            return null;
+        return mConstructors[name](args_string);
     }
 
-    private void PacketHandler(Packet packet, Simulator sim) {
-        Console.WriteLine("Packet: " + packet.ToString());
-    }
-
-    private TraceSession mParent;
-} // class RawPacketTracer
+    private Dictionary<string, TracerConstructor> mConstructors;
+} // class TracerFactory
 
 } // namespace SLTrace
