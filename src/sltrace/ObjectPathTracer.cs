@@ -58,6 +58,10 @@ class ObjectPathTracer : ITracer {
     public void StartTrace(TraceSession parent) {
         mParent = parent;
 
+        // For initial startup info
+        mParent.Client.Network.OnSimConnected +=
+            new NetworkManager.SimConnectedCallback(this.SimConnectedHandler);
+
         string renderer_name = "OpenMetaverse.Rendering.Meshmerizer.dll";
         string renderer_path = System.IO.Path.Combine(parent.Config.BinaryPath, renderer_name);
         mRenderer = OpenMetaverse.Rendering.RenderingLoader.LoadRenderer(renderer_path);
@@ -100,16 +104,14 @@ class ObjectPathTracer : ITracer {
         mJSON.BeginArray();
 
         mStartTime = DateTime.Now;
-        mJSON.BeginObject();
-        JSONStringField("event", "started");
-        mJSON.Field("time", new JSONString( mStartTime.ToString() ));
-        mJSON.EndObject();
     }
 
     public void StopTrace() {
         mJSON.EndArray();
         mJSON.Finish();
     }
+
+
 
     private void ComputeBounds(Primitive prim) {
         SimpleMesh mesh = mRenderer.GenerateSimpleMesh(prim, DetailLevel.High);
@@ -286,6 +288,17 @@ class ObjectPathTracer : ITracer {
             JSONUUIDField("id", id);
             JSONStringField("name", name);
             JSONStringField("description", description);
+            mJSON.EndObject();
+        }
+    }
+
+
+    private void SimConnectedHandler(Simulator sim) {
+        lock(mJSON) {
+            mJSON.BeginObject();
+            JSONStringField("event", "started");
+            mJSON.Field("time", new JSONString( mStartTime.ToString() ));
+            JSONStringField("sim", sim.Name);
             mJSON.EndObject();
         }
     }
