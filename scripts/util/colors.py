@@ -4,11 +4,16 @@ import subprocess
 import random
 
 color_seed=0
+is_not_804 = None
+
 # Get a random color for a graph
 def get_random_color():
-    is_not_804 = subprocess.call(['grep', '-q', '8[.]04', '/etc/lsb-release'])
+    global is_not_804
+    if is_not_804 == None:
+        is_not_804 = subprocess.call(['grep', '-q', '8[.]04', '/etc/lsb-release'])
 
-    if not is_not_804:
+    #if not is_not_804:
+    if True: # Something seems broken on 9.10 too these days...
         set_colors = [
             'aliceblue',
             'antiquewhite',
