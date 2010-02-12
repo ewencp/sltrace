@@ -110,28 +110,31 @@ class ObjectPathTrace:
     def __iter__(self):
         return self._orig.__iter__()
 
+    def events_by_type(self, type_set):
+        return [x for x in self._orig if x['event'] in type_set]
+
     def addition_events(self):
         """Returns a list of addition events in this trace."""
         if not self._additions:
-            self._additions = [x for x in self._orig if x['event'] == 'add']
+            self._additions = self.events_by_type(['add'])
         return self._additions
 
     def removal_events(self):
         """Returns a list of kill events in this trace."""
-        if not self._additions:
-            self._additions = [x for x in self._orig if x['event'] == 'kill']
-        return self._additions
+        if not self._removals:
+            self._removals = self.events_by_type(['kill'])
+        return self._removals
 
     def size_events(self):
         """Returns a list of size events in this trace."""
         if not self._sizes:
-            self._sizes = [x for x in self._orig if x['event'] == 'size']
+            self._sizes = self.events_by_type(['size'])
         return self._sizes
 
     def loc_events(self):
         """Returns a list of loc update events in this trace."""
         if not self._locupdates:
-            self._locupdates = [x for x in self._orig if x['event'] == 'loc']
+            self._locupdates = self.events_by_type(['loc'])
         return self._locupdates
 
 
@@ -405,6 +408,156 @@ class ObjectPathTrace:
             paths[objid] = MotionPath(start=self._start_time, points=waypoints)
 
         return paths
+
+
+    def motion_sequence(self, objid):
+        """
+        Extract a sequence of MotionPaths for the object with the
+        specified UUID. A single MotionPath is generated for location
+        updates between each pair of different 'add' events.  In other
+        words, a new MotionPath will be started each time a parent
+        change occurs, guaranteeing that the values retrieved from a
+        single MotionPath won't have weird interpolation problems due
+        to switching between sim-local and parent-local coordinates
+        for location update.
+        """
+        return self.motion_sequences([objid])[objid]
+
+    def motion_sequences(self, objids):
+        """
+        Extract MotionPath sequences for the objects listed in
+        objid_set. MotionPaths are returned as a dict of UUID ->
+        [MotionPath, list].
+        """
+        with_pars = self.motion_sequences_with_parents(objids)
+        without_pars = {}
+        for objid,par_motion_list in with_pars.items():
+            pars, motions = zip(*par_motion_list) #unzips parent,motion pairs
+            without_pars[objid] = motions
+        return without_pars
+
+    def motion_sequences_with_parents(self, objids):
+        """
+        Extract MotionPath sequences for the objects listed in
+        objid_set, including parent information. MotionPaths are
+        returned as a dict of UUID -> [(parent1, MotionPath),
+        (parent2, MotionPath)].
+        """
+        objid_set = set(objids)
+        # Get all adds, kills, and locs for these objects
+        adds_kills_locs = [evt
+                           for evt in self.events_by_type(['add', 'kill', 'loc'])
+                           if UUID(evt['id']) in objid_set]
+
+        # Split by kills and parent changes for each objid
+        # current subsequence for each objid
+        cur_subseq = dict([(objid,[]) for objid in objid_set])
+        # list of subsequences for each objid
+        subseqs = dict([(objid,[]) for objid in objid_set])
+        # last parent encountered for each objid
+        last_parent = dict([(objid,None) for objid in objid_set])
+        for evt in adds_kills_locs:
+            evt_id = UUID(evt['id'])
+            need_new_subseq = False
+            if evt['event'] == 'loc':
+                cur_subseq[evt_id].append(evt)
+            elif evt['event'] == 'kill': # kills always force a new subseq
+                need_new_subseq = True
+                new_parent = None
+            elif evt['event'] == 'add':
+                new_parent = None
+                if 'parent' in evt: new_parent = UUID(evt['parent'])
+                if new_parent != last_parent[evt_id]:
+                    need_new_subseq = True
+
+            if need_new_subseq:
+                if cur_subseq[evt_id]: subseqs[evt_id].append( (last_parent[evt_id], cur_subseq[evt_id]) )
+                cur_subseq[evt_id] = []
+                last_parent[evt_id] = new_parent
+        # if non-empty, append the last subsequence
+        for objid,cursub in cur_subseq.items():
+            if cursub: subseqs[objid].append( (last_parent[evt_id],cursub) )
+
+        # Generate waypoint lists from event lists
+        results = {}
+        for objid,subseqlist in subseqs.items():
+            motion_path_list = [ (par,
+                                  MotionPath(start=self._start_time,
+                                             points = [(parse_time(evt['time']),parse_vec3(evt['pos']))
+                                                       for evt in subseq]
+                                             )
+                                  )
+                                 for par,subseq in subseqlist]
+            results[objid] = motion_path_list
+
+        # And finally generate motion paths from waypoint lists
+        return results
+
+    def sim_motions(self, objids):
+        """
+        Returns a dict of UUID -> [list, of, motion, paths], where the
+        MotionPaths have all been converted to sim coordinates,
+        i.e. the importance of parent relationships are removed for
+        location data.
+
+        Note that due to ordering, this may not give perfect results.
+        This method assumes that fill_parents() has already been
+        called, and any missing parents are ignored.
+        """
+        # We use the list of parent,motion lists for each object to
+        # bootstrap. Generate and squeeze.
+        # FIXME This could be more efficient by computing only the
+        # parents, grandparents, etc that are required for the
+        # specified object set instead of using self.objects()
+        path_seqs = self.motion_sequences_with_parents(self.objects())
+        for objid,mots in path_seqs.items():
+            for par,mot in mots: mot.squeeze()
+
+        # Returns (parent,motion_path) for the specified object and
+        # time, i.e. gets the subsequence at the appropriate time.
+        # Note that this doesn't guarantee that time falls between the
+        # returned motion_path's start_time() and end_time() since the
+        # sequence isn't guaranteed to cover all times.  Instead it
+        # returns the one covering the time or the one right before,
+        # under the assumption that the object would end up just
+        # remaining in the same spot until another update was found.
+        def get_par_motion_for_time(objid, time):
+            last_par, last_mot = path_seqs[objid][0]
+            for par,mot in path_seqs[objid]:
+                if time > mot.end_time(): break
+                last_par, last_mot = par, mot
+            return (last_par,last_mot)
+
+        # Computes an object's position at the specified time by
+        # computing each parents position and aggregating them.
+        def get_pos_at_time(objid, time):
+            # initialize at the bottom, with the object we care about
+            # as the 'parent' and position at the origin
+            pos = (0.0, 0.0, 0.0)
+            par = objid
+            while par != None:
+                next_par, par_mot = get_par_motion_for_time(par, time)
+                pos = vec3.add(pos, par_mot.interpolate(time))
+                par = next_par
+            return pos
+
+        # And the result of this method will be a dict of lists of
+        # MotionPaths, largely just adjustments of those generated by
+        # motion_sequences() to be in sim-coordinates.
+        results = {}
+        for objid in objids:
+            mots = path_seqs[objid]
+            results[objid] = []
+            for par,mot in mots:
+                sim_locs = []
+                for time,pos in mot:
+                    sim_locs.append( (time, get_pos_at_time(objid, time)) )
+                newmot = MotionPath(mot.start, sim_locs)
+                results[objid].append( newmot )
+
+        return results
+
+
 
 def main():
     if len(sys.argv) < 2:

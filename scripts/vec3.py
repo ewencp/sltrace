@@ -7,8 +7,14 @@ import math
 __min = min
 __max = max
 
+def add(v1, v2):
+    return ( v1[0]+v2[0], v1[1]+v2[1], v1[2]+v2[2] )
+
 def mult(val, scale):
     return ( val[0] * scale[0], val[1] * scale[1], val[2] * scale[2] )
+
+def scale(val, scale):
+    return ( val[0] * scale, val[1] * scale, val[2] * scale )
 
 def len2(v):
     return v[0]*v[0] + v[1]*v[1] + v[2]*v[2]

@@ -25,22 +25,22 @@ def main():
     trace = ObjectPathTrace(sys.argv[1])
     trace.fill_parents(report=True)
 
-    motions = trace.motions(trace.roots())
-
+    motions = trace.sim_motions(trace.roots())
 
     Path = mpath.Path
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
-    for objid,mot in motions.items():
-        mot.squeeze()
-        if len(mot) <= 1: continue
-
-        first_t, first_pos = mot[0]
-        coord_seq = [ (pos[0],pos[1]) for t,pos in mot ]
-        x,y = zip(*coord_seq)
+    for objid,mots in motions.items():
         col = colors.get_random_color()
-        line, = ax.plot(x, y, color=col, marker='.')
+
+        for mot in mots:
+            if len(mot) <= 1: continue
+
+            first_t, first_pos = mot[0]
+            coord_seq = [ (pos[0],pos[1]) for t,pos in mot ]
+            x,y = zip(*coord_seq)
+            line, = ax.plot(x, y, color=col, marker='.')
 
     ax.grid()
     ax.set_xlim(0,256)
