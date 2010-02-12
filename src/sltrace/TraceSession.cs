@@ -90,10 +90,20 @@ class TraceSession {
             mController.StartTrace(this, mClient.Self);
         }
 
-        var logged_in = mClient.Network.Login(
-            mConfig.FirstName, mConfig.LastName, mConfig.Password,
-            Config.UserAgent, Config.UserVersion
-        );
+        bool logged_in;
+        if (Config.HasStart) {
+            string start_loc = NetworkManager.StartLocation(Config.StartSim, Config.StartX, Config.StartY, Config.StartZ);
+            logged_in = mClient.Network.Login(
+                mConfig.FirstName, mConfig.LastName, mConfig.Password,
+                Config.UserAgent, start_loc, Config.UserVersion
+            );
+        }
+        else {
+            logged_in = mClient.Network.Login(
+                mConfig.FirstName, mConfig.LastName, mConfig.Password,
+                Config.UserAgent, Config.UserVersion
+            );
+        }
 
         Console.WriteLine("Login message: " + mClient.Network.LoginMessage);
 

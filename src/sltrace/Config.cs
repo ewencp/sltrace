@@ -33,6 +33,8 @@
 using System;
 using System.Reflection;
 using System.Configuration;
+using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace SLTrace {
 
@@ -41,12 +43,22 @@ namespace SLTrace {
  *  include traces via a larger number of client connections).
  */
 class Config {
-    public Config(string binpath) {
+    public Config(string binpath, Dictionary<string, string> arg_map) {
         mBinPath = binpath;
+
         mFirstName = "";
         mLastName = "";
         mPassword = "";
         mDuration = TimeSpan.FromSeconds(30);
+
+        mStartURL = null;
+
+        if (arg_map.ContainsKey("url")) {
+            string[] parts = arg_map["url"].Split(new Char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            Debug.Assert(parts.Length == 5);
+            Debug.Assert(parts[0] == "secondlife");
+            mStartURL = new string[] { parts[1], parts[2], parts[3], parts[4] };
+        }
     }
 
     // The path the binary sltrace.exe is being run from, useful for finding
@@ -90,6 +102,27 @@ class Config {
         }
     }
 
+    public bool HasStart {
+        get { return mStartURL != null; }
+    }
+
+    public string StartSim {
+        get { return mStartURL[0]; }
+    }
+
+    public int StartX {
+        get { return Int32.Parse(mStartURL[1]); }
+    }
+
+    public int StartY {
+        get { return Int32.Parse(mStartURL[2]); }
+    }
+
+    public int StartZ {
+        get { return Int32.Parse(mStartURL[3]); }
+    }
+
+
     // Helper method gets attributes of current assembly
     private static T GetAssemblyAttribute<T>() where T : Attribute {
         object[] attributes = Assembly.GetExecutingAssembly()
@@ -103,6 +136,7 @@ class Config {
     private string mLastName;
     private string mPassword;
     private TimeSpan mDuration;
+    private string[] mStartURL;
 } // class Config
 
 } // namespace SLTrace

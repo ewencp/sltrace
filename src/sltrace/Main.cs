@@ -62,7 +62,7 @@ class SLTrace {
         ControllerFactory controllerFactory = new ControllerFactory();
         controllerFactory.Register("static-rotating", args_string => new StaticRotatingController(args_string) );
 
-        Config config = new Config(progdir);
+        Config config = new Config(progdir, arg_map);
         TraceSession session = new TraceSession(config);
 
         //session.AddTracer(new RawPacketTracer());
