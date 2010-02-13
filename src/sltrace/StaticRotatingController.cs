@@ -50,7 +50,7 @@ class StaticRotatingController : IController {
         mPeriod = TimeSpan.FromSeconds(30);
         if (arg_map.ContainsKey("period")) {
             string period_string = arg_map["period"];
-            mPeriod = TimeSpan.Parse(period_string);
+            mPeriod = Arguments.ParseDuration(period_string);
         }
 
         mLastUpdate = DateTime.Now;

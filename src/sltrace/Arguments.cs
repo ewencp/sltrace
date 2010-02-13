@@ -76,6 +76,27 @@ class Arguments {
         return args;
     }
 
+    /** Parse a string containing a duration.  The TimeSpan.Parse() method uses
+     *  an inconvenient format and is not particularly flexible, so we provide
+     *  this one instead.  Currently supports h, m, s, ms as postfixes for
+     *  hours, minutes, seconds, and milliseconds.
+     */
+    public static TimeSpan ParseDuration(string dur_string) {
+        if (dur_string.EndsWith("h")) {
+            return TimeSpan.FromHours(Double.Parse(dur_string.Substring(0, dur_string.Length-1)));
+        }
+        else if (dur_string.EndsWith("m")) {
+            return TimeSpan.FromMinutes(Double.Parse(dur_string.Substring(0, dur_string.Length-1)));
+        }
+        else if (dur_string.EndsWith("s")) {
+            return TimeSpan.FromSeconds(Double.Parse(dur_string.Substring(0, dur_string.Length-1)));
+        }
+        else if (dur_string.EndsWith("ms")) {
+            return TimeSpan.FromMilliseconds(Double.Parse(dur_string.Substring(0, dur_string.Length-2)));
+        }
+        return TimeSpan.Zero;
+    }
+
 } // class Arguments
 
 } // namespace SLTrace

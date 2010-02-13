@@ -83,7 +83,7 @@ class SLTrace {
         session.AddTracer(tracer);
 
         TimeSpan duration =
-            arg_map.ContainsKey("duration") ? TimeSpan.Parse(arg_map["duration"]) : TimeSpan.FromMinutes(5);
+            arg_map.ContainsKey("duration") ? Arguments.ParseDuration(arg_map["duration"]) : TimeSpan.FromMinutes(5);
 
         session.Run(duration);
     }
