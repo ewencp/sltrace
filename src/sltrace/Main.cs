@@ -82,7 +82,10 @@ class SLTrace {
         ITracer tracer = tracerFactory.Create(tracer_type, tracer_args);
         session.AddTracer(tracer);
 
-        session.Run();
+        TimeSpan duration =
+            arg_map.ContainsKey("duration") ? TimeSpan.Parse(arg_map["duration"]) : TimeSpan.FromMinutes(5);
+
+        session.Run(duration);
     }
 } // class SLTrace
 } // namespace SLTrace

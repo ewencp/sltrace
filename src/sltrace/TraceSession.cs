@@ -80,7 +80,7 @@ class TraceSession {
         }
     }
 
-    public void Run() {
+    public void Run(TimeSpan duration) {
         // Notify all ITracers of start
         foreach(ITracer tr in mTracers)
             tr.StartTrace(this);
@@ -117,7 +117,7 @@ class TraceSession {
             System.Threading.Thread.Sleep(1000);
             if (mController != null)
                 mController.Update();
-            if (DateTime.Now - start > mConfig.Duration)
+            if (DateTime.Now - start > duration)
                 break;
         }
 

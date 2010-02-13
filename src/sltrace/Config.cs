@@ -49,7 +49,6 @@ class Config {
         mFirstName = "";
         mLastName = "";
         mPassword = "";
-        mDuration = TimeSpan.FromSeconds(30);
 
         mStartURL = null;
 
@@ -77,11 +76,6 @@ class Config {
 
     public string Password {
         get { return mPassword; }
-    }
-
-    /** Duration of the trace session. */
-    public TimeSpan Duration {
-        get { return mDuration; }
     }
 
     public static string UserAgent {
@@ -135,7 +129,6 @@ class Config {
     private string mFirstName;
     private string mLastName;
     private string mPassword;
-    private TimeSpan mDuration;
     private string[] mStartURL;
 } // class Config
 
