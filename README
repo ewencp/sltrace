@@ -37,3 +37,20 @@ arguments with defaults have them listed beside them.
              generated. (default: object-path)
  * tracer-args -- arguments to the tracer. Valid values depend on the type of
                   tracer. (default:none)
+
+
+Running Multiple Bots
+---------------------
+
+Running more than one bot manually can be annoying and leaves you with
+unsynchronized data.  A python script for automating this process is
+provided in scripts/parade.py.  The script assumes that the majority
+of parameters for a deployment are uniform across all nodes. The user
+specifies a bot file, which provides a list of bot accounts available
+for use, and a sim list, which is just a list of secondlife:// URLs
+for the sims to collect traces from.  Any additional arguments are
+passed through to the invoked trace processes, allowing the user to
+customize the trace just as they would customize a single bot. A small
+amount of substitution in arguments is possible to handle conflicting
+output files.  See the documentation in scripts/parade.py for more
+details.
