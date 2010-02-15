@@ -8,3 +8,32 @@ both automating the collection of trace data via a single client
 connection over long periods of time (a long term first person view)
 as well as coordinating a collection of clients, possibly across many
 servers, to obtain the best possible aggregated information.
+
+
+Running
+-------
+
+To actually connect to Second Life and collect data, use the binary
+sltrace/bin/sltrace.exe.  Most options for collection are controlled via command
+line arguments. Arguments are of the form --argname=argvalue.  The following is
+a list of core arguments; required arguments are marked as such and optional
+arguments with defaults have them listed beside them.
+
+ * first -- first name of account to log in with (required)
+ * last -- last name of account to log in with (required)
+ * password -- password of account to log in with (required)
+
+ * url -- a secondlife protocol URL specifying starting location.  If omitted,
+          your avatar will start where you last logged out
+ * duration -- the time to run the trace for, e.g. 1h, 1m, 1s for 1 hour, 1
+          minute, and 1 second respectively (default: 5m).
+
+ * controller -- the controller to use for avatar movement. (default:
+                 static-rotating)
+ * controller-args -- arguments to the controller. Valid values depend on the
+                 type of controller.  (default: none)
+
+ * tracer -- tracer to instantiate, which controls what kind of trace is
+             generated. (default: object-path)
+ * tracer-args -- arguments to the tracer. Valid values depend on the type of
+                  tracer. (default:none)
