@@ -50,6 +50,13 @@ class Config {
         mLastName = "";
         mPassword = "";
 
+        if (arg_map.ContainsKey("first"))
+            mFirstName = arg_map["first"];
+        if (arg_map.ContainsKey("last"))
+            mLastName = arg_map["last"];
+        if (arg_map.ContainsKey("password"))
+            mPassword = arg_map["password"];
+
         mStartURL = null;
 
         if (arg_map.ContainsKey("url")) {
