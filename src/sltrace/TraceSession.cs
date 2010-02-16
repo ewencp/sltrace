@@ -43,6 +43,7 @@ class TraceSession {
         mClient = new GridClient();
         mTracers = new List<ITracer>();
         mController = null;
+        mFinished = false;
 
         // We turn as many things off as possible -- features are *opt in* by
         // default, meaning specific loggers must enable these features if they
@@ -90,6 +91,31 @@ class TraceSession {
             mController.StartTrace(this, mClient.Self);
         }
 
+        if (!TryLogin()) {
+            Console.WriteLine("Unable to login.");
+            return;
+        }
+
+        // Sleep for the specified duration, async callbacks do all the real
+        // work.
+        DateTime start = DateTime.Now;
+        while(true) {
+            System.Threading.Thread.Sleep(1000);
+            if (mController != null)
+                mController.Update();
+            if (DateTime.Now - start > duration)
+                break;
+        }
+        mFinished = true;
+
+        TryLogout();
+
+        // Notify all ITracers of start
+        foreach(ITracer tr in mTracers)
+            tr.StopTrace();
+    }
+
+    private bool TryLogin() {
         bool logged_in;
         if (Config.HasStart) {
             string start_loc = NetworkManager.StartLocation(Config.StartSim, Config.StartX, Config.StartY, Config.StartZ);
@@ -106,27 +132,12 @@ class TraceSession {
         }
 
         Console.WriteLine("Login message: " + mClient.Network.LoginMessage);
+        return logged_in;
+    }
 
-        if (!logged_in)
-            return;
-
-        // Sleep for the specified duration, async callbacks do all the real
-        // work.
-        DateTime start = DateTime.Now;
-        while(true) {
-            System.Threading.Thread.Sleep(1000);
-            if (mController != null)
-                mController.Update();
-            if (DateTime.Now - start > duration)
-                break;
-        }
-
+    private void TryLogout() {
         // And logout...
         mClient.Network.Logout();
-
-        // Notify all ITracers of start
-        foreach(ITracer tr in mTracers)
-            tr.StopTrace();
     }
 
     private void ConnectHandler(object sender) {
@@ -135,12 +146,16 @@ class TraceSession {
 
     private void DisconnectHandler(NetworkManager.DisconnectType type, string message) {
         Console.WriteLine("Got disconnected from sim: " + message);
+        // Reconnect if we've still got time left
+        if (!mFinished)
+            TryLogin();
     }
 
     private Config mConfig;
     private GridClient mClient;
     private List<ITracer> mTracers;
     private IController mController;
+    private bool mFinished; // If true, indicates we're trying to exit
 } // class TraceSession
 
 } // namespace SLTrace
