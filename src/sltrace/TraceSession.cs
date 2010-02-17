@@ -43,7 +43,9 @@ class TraceSession {
         mClient = new GridClient();
         mTracers = new List<ITracer>();
         mController = null;
-        mFinished = false;
+        mNeedsReconnect = false;
+        mDisconnectTime = DateTime.Now;
+        mReconnectWait = TimeSpan.FromSeconds(1);
 
         // We turn as many things off as possible -- features are *opt in* by
         // default, meaning specific loggers must enable these features if they
@@ -105,8 +107,16 @@ class TraceSession {
                 mController.Update();
             if (DateTime.Now - start > duration)
                 break;
+
+            if (mNeedsReconnect && DateTime.Now > mDisconnectTime + mReconnectWait) {
+                if (TryLogin()) {
+                    mNeedsReconnect = false;
+                }
+                else {
+                    mReconnectWait = TimeSpan.FromSeconds(mReconnectWait.TotalSeconds * 2.0); // Exponential back off
+                }
+            }
         }
-        mFinished = true;
 
         TryLogout();
 
@@ -146,16 +156,19 @@ class TraceSession {
 
     private void DisconnectHandler(NetworkManager.DisconnectType type, string message) {
         Console.WriteLine("Got disconnected from sim: " + message);
-        // Reconnect if we've still got time left
-        if (!mFinished)
-            TryLogin();
+        // Signal need for reconnect to main loop
+        mNeedsReconnect = true;
+        mDisconnectTime = DateTime.Now;
+        mReconnectWait = TimeSpan.FromSeconds(1);
     }
 
     private Config mConfig;
     private GridClient mClient;
     private List<ITracer> mTracers;
     private IController mController;
-    private bool mFinished; // If true, indicates we're trying to exit
+    private bool mNeedsReconnect;
+    private DateTime mDisconnectTime;
+    private TimeSpan mReconnectWait;
 } // class TraceSession
 
 } // namespace SLTrace
