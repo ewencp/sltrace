@@ -58,6 +58,7 @@ class TraceSession {
         mClient.Throttle.Wind = 0;
 
         // Set up our session management callbacks
+        mClient.Network.OnLogin += new NetworkManager.LoginCallback(this.LoginHandler);
         mClient.Network.OnConnected += new NetworkManager.ConnectedCallback(this.ConnectHandler);
         mClient.Network.OnDisconnected += new NetworkManager.DisconnectedCallback(this.DisconnectHandler);
     }
@@ -148,6 +149,10 @@ class TraceSession {
     private void TryLogout() {
         // And logout...
         mClient.Network.Logout();
+    }
+
+    private void LoginHandler(LoginStatus login, string message) {
+        Console.WriteLine("Login response: status ({0}), message ({1})", login.ToString(), message);
     }
 
     private void ConnectHandler(object sender) {
