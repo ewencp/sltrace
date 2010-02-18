@@ -43,9 +43,10 @@ class TraceSession {
         mClient = new GridClient();
         mTracers = new List<ITracer>();
         mController = null;
+        mConnectedSimName = null;
         mNeedsReconnect = false;
         mDisconnectTime = DateTime.Now;
-        mReconnectWait = TimeSpan.FromSeconds(1);
+        mReconnectWait = TimeSpan.FromSeconds(30);
 
         // We turn as many things off as possible -- features are *opt in* by
         // default, meaning specific loggers must enable these features if they
@@ -58,9 +59,9 @@ class TraceSession {
         mClient.Throttle.Wind = 0;
 
         // Set up our session management callbacks
-        mClient.Network.OnLogin += new NetworkManager.LoginCallback(this.LoginHandler);
         mClient.Network.OnConnected += new NetworkManager.ConnectedCallback(this.ConnectHandler);
         mClient.Network.OnDisconnected += new NetworkManager.DisconnectedCallback(this.DisconnectHandler);
+        mClient.Network.OnSimConnected += new NetworkManager.SimConnectedCallback(this.SimConnectedHandler);
     }
 
     public GridClient Client {
@@ -110,10 +111,13 @@ class TraceSession {
                 break;
 
             if (mNeedsReconnect && DateTime.Now > mDisconnectTime + mReconnectWait) {
-                if (TryLogin()) {
+                bool logged_in = TryLogin();
+                if (logged_in && (!mConfig.HasStart || (mConnectedSimName.ToLower() == mConfig.StartSim.ToLower()))) {
                     mNeedsReconnect = false;
                 }
                 else {
+                    if (logged_in)
+                        TryLogout();
                     mReconnectWait = TimeSpan.FromSeconds(mReconnectWait.TotalSeconds * 2.0); // Exponential back off
                 }
             }
@@ -151,10 +155,6 @@ class TraceSession {
         mClient.Network.Logout();
     }
 
-    private void LoginHandler(LoginStatus login, string message) {
-        Console.WriteLine("Login response: status ({0}), message ({1})", login.ToString(), message);
-    }
-
     private void ConnectHandler(object sender) {
         Console.WriteLine("I'm connected to the simulator");
     }
@@ -164,13 +164,18 @@ class TraceSession {
         // Signal need for reconnect to main loop
         mNeedsReconnect = true;
         mDisconnectTime = DateTime.Now;
-        mReconnectWait = TimeSpan.FromSeconds(1);
+        mReconnectWait = TimeSpan.FromSeconds(30);
+    }
+
+    private void SimConnectedHandler(Simulator sim) {
+        mConnectedSimName = sim.Name;
     }
 
     private Config mConfig;
     private GridClient mClient;
     private List<ITracer> mTracers;
     private IController mController;
+    private string mConnectedSimName;
     private bool mNeedsReconnect;
     private DateTime mDisconnectTime;
     private TimeSpan mReconnectWait;
