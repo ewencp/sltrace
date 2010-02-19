@@ -33,3 +33,6 @@ sltrace : ${SLTRACE_BIN}
 
 clean :
 	rm -f ${SLTRACE_BIN}
+
+docs : doc/Doxyfile doc/*.doc doc/*.html doc/*.css
+	doxygen doc/Doxyfile

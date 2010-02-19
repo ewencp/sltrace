@@ -1,0 +1,38 @@
+/** \page index Introduction
+ *
+ *  <h2> Introduction </h2>
+ *  SLTrace is a utility for collecting trace data from Second Life.
+ *  The goal is to leverage existing libraries (primarily libomv) to
+ *  collect large amounts of trace data automatically.  This includes
+ *  automating both the collection of trace data via a single client
+ *  connection over long periods of time (a long term first person
+ *  view) as well as coordinating a collection of clients, possibly
+ *  across many servers, to obtain the best possible aggregated
+ *  information.
+ *
+ *  This documentation is split into two parts.  The first part is a
+ *  user manual that describes how to use the software to collect data
+ *  from Second Life as well as transform raw traces into a more
+ *  useful form.  The second part is a developer guide that describes
+ *  the architecture of the system, how to extend it, and issues to be
+ *  aware of when extending it.  The developer guide also discusses
+ *  general issues with collecting data from Second Life.
+ *
+ *  <h2> User Guide Contents </h2>
+ *   - \ref userguide - Introduction to sltrace from a user perspective.
+ *   - \ref sltrace - Guide for using sltrace to obtain single avatar
+ *                    traces.
+ *   - \ref scripts - A guide to the scripts that are provided for
+ *                    working with raw trace files obtained from
+ *                    sltrace.
+ *
+ *  <h2> Developer Guide Contents </h2>
+ *   - \ref design - Justification of the design of sltrace given that
+ *                   there are multiple ways to collect trace data
+ *                   from Second Life.
+ *   - \ref quirks - Discussion of difficulties encountered when
+ *                   collecting and analyzing data from Second Life,
+ *                   due to SL's design and quirks.
+ *   - \ref architecture - Description of the architecture of sltrace
+ *                   and how to extend it.
+ */
