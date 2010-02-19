@@ -9,48 +9,9 @@ connection over long periods of time (a long term first person view)
 as well as coordinating a collection of clients, possibly across many
 servers, to obtain the best possible aggregated information.
 
+Documentation can be generated using doxygen by running 'make docs' from the
+root directory.  It will be placed in sltrace/doc/html.  If you don't have
+doxygen, the documentation is still readable in raw form; find it in sltrace/doc/.
 
-Running
--------
-
-To actually connect to Second Life and collect data, use the binary
-sltrace/bin/sltrace.exe.  Most options for collection are controlled via command
-line arguments. Arguments are of the form --argname=argvalue.  The following is
-a list of core arguments; required arguments are marked as such and optional
-arguments with defaults have them listed beside them.
-
- * first -- first name of account to log in with (required)
- * last -- last name of account to log in with (required)
- * password -- password of account to log in with (required)
-
- * url -- a secondlife protocol URL specifying starting location.  If omitted,
-          your avatar will start where you last logged out
- * duration -- the time to run the trace for, e.g. 1h, 1m, 1s for 1 hour, 1
-          minute, and 1 second respectively (default: 5m).
-
- * controller -- the controller to use for avatar movement. (default:
-                 static-rotating)
- * controller-args -- arguments to the controller. Valid values depend on the
-                 type of controller.  (default: none)
-
- * tracer -- tracer to instantiate, which controls what kind of trace is
-             generated. (default: object-path)
- * tracer-args -- arguments to the tracer. Valid values depend on the type of
-                  tracer. (default:none)
-
-
-Running Multiple Bots
----------------------
-
-Running more than one bot manually can be annoying and leaves you with
-unsynchronized data.  A python script for automating this process is
-provided in scripts/parade.py.  The script assumes that the majority
-of parameters for a deployment are uniform across all nodes. The user
-specifies a bot file, which provides a list of bot accounts available
-for use, and a sim list, which is just a list of secondlife:// URLs
-for the sims to collect traces from.  Any additional arguments are
-passed through to the invoked trace processes, allowing the user to
-customize the trace just as they would customize a single bot. A small
-amount of substitution in arguments is possible to handle conflicting
-output files.  See the documentation in scripts/parade.py for more
-details.
+For instructions on how to build and use sltrace, see the documentation
+described above.

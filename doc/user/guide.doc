@@ -1,0 +1,170 @@
+/** \page userguide User Guide
+ *
+ *  <h2> User Guide </h2>
+ *
+ *  <h3> Requirements </h3>
+ *
+ *  SLTrace depends on a few external libraries:
+ *   - sltrace.exe requires:
+ *    - Mono to build (http://mono-project.com, > 2.0)
+ *    - libomv to connect to SL (http://lib.openmetaverse.org, 0.7)
+ *
+ *   - The post-processing scripts require:
+ *    - Python (http://www.python.org, 2.6)
+ *    - JSON library for python (json or simplejson, simplejson suggested for
+ *      performance)
+ *    - matplotlib for graphing (http://matplotlib.sourceforge.net/)
+ *
+ *  All the scripting requirements are soft -- you can run sltrace and work with
+ *  the data without them, but some features of scripts (or some scripts
+ *  altogether) will not function.
+ *
+ *  <h3> Building SLTrace </h3>
+ *
+ *  All the dependencies except libomv are generally provided as
+ *  system packages. A script for building libomv and putting it in
+ *  its expected location is included in the deps directory.  If you
+ *  have svn, mono, and nant installed, run
+ *   \code
+ *   make deps
+ *   \endcode
+ *  from the top-level directory should properly install it. (It is
+ *  installed locally in the sltrace directory, root permissions are
+ *  not necessary). Note that the compile may not fully complete, but
+ *  as long as the library was built this is not a problem (the test
+ *  binaries are not used).
+ *
+ *  Assuming all dependencies are available, the top level Makefile
+ *  will build the sltrace binary.  Run
+ *   \code
+ *   make
+ *   \endcode
+ *  from the top-level directory.  If successful, you should find that
+ *  it has created sltrace/bin/sltrace.exe.
+ *
+ *  <h3> Collecting A Single Trace With sltrace.exe </h3>
+ *
+ *  sltrace collects a trace from a single avatars perspective.  In
+ *  order to run sltrace, you must have an account registered with
+ *  Second Life.
+ *
+ *  \note You should let Second Life know that you are running your
+ *  avatar as a bot.  You can do this by logging into secondlife.com
+ *  and going to Account -> Scripted Agent Status.
+ *
+ *  A trace session is a single avatar, fixed duration connection to
+ *  Second Life. There are two important ways you can control how a
+ *  trace is executed: the controller and the tracer.
+ *
+ *  The controller specifies how the avatar moves around the world:
+ *  standing still, wandering, stopping periodically at waypoints,
+ *  etc.  Many users will be satisfied with a static controller (the
+ *  default), and this is also the most commonly used when deploying
+ *  multiple concurrent bots since it allows you to guarantee that all
+ *  sims you want to monitor are always covered.
+ *
+ *  The tracer specifies what information is stored.  While a raw
+ *  packet tracer is available, usually storing all data is
+ *  unnecessary.  For instance, a common use case is storing the
+ *  locations of objects over time to get coarse-grained mobility
+ *  information (the object-path tracer does just this).
+ *
+ *  You can currently specify one controller and one tracer (or use
+ *  the defaults).
+ *
+ *  Most options for collection are controlled via command line
+ *  arguments. Arguments are of the form --argname=argvalue.  The
+ *  following is a list of core arguments; required arguments are
+ *  marked as such and optional arguments with defaults have them
+ *  listed beside them.
+ *
+ *  - first -- first name of account to log in with (required)
+ *  - last -- last name of account to log in with (required)
+ *  - password -- password of account to log in with (required)
+ *
+ *  - url -- a secondlife protocol URL specifying starting location.  If omitted,
+ *           your avatar will start where you last logged out
+ *  - duration -- the time to run the trace for, e.g. 1h, 1m, 1s for 1 hour, 1
+ *         minute, and 1 second respectively (default: 5m).
+ *
+ *  - controller -- the controller to use for avatar movement. (default:
+ *                static-rotating)
+ *  - controller-args -- arguments to the controller. Valid values depend on the
+ *                type of controller.  (default: none)
+ *
+ *  - tracer -- tracer to instantiate, which controls what kind of trace is
+ *            generated. (default: object-path)
+ *  - tracer-args -- arguments to the tracer. Valid values depend on the type of
+ *                 tracer. (default:none)
+ *
+ *  <h3> Running Multiple Bots </h3>
+ *
+ *  Running more than one bot manually can be annoying and leaves you
+ *  with unsynchronized data.  A python script for automating this
+ *  process is provided in scripts/parade.py. Parade is designed to
+ *  let you deploy a large number of essentially identical bots,
+ *  changing only their starting locations and account information.
+ *  This is useful if you want to collect a trace from a region which
+ *  covers more than 1 sim server.
+ *
+ *  Parade uses two JSON configuration files to control deployment: a
+ *  description of the bot accounts and a description of the
+ *  deployment locations.
+ *
+ *  The bot file should contain a list of bot accounts, where each bot
+ *  account is a dict containing values for first name, last name, and
+ *  password. For example (bots.json):
+ *  \code
+ *   [
+ *    {
+ *     "first" : "myfirstname1",
+ *     "last" : "mylastname1",
+ *     "password" : "mypassword1"
+ *    },
+ *    {
+ *     "first" : "myfirstname2",
+ *     "last" : "mylastname2",
+ *     "password" : "mypassword2"
+ *    }
+ *   ]
+ *  \endcode
+ *  defines a collection of 2 bots.
+ *
+ *  The sim file should contain a list of secondlife:// URLs
+ *  specifying the starting locations of bots. For example (sims.json):
+ *  \code
+ *   [
+ *    "secondlife://kenilworth/127/121/0/",
+ *    "secondlife://goodnight/133/137/0/",
+ *    }
+ *   ]
+ *  \endcode
+ *  specifies two locations to start bots in.
+ *
+ *  Parade only has two command line arguments:
+ *   - bots - specifies the bots configuration file
+ *   - sims - specifies the sims configuration file
+ *  Any additional arguments are passed through to the invoked trace
+ *  processes, allowing the user to customize the trace just as they
+ *  would customize a single bot. A small amount of substitution in
+ *  arguments is possible to handle conflicting output files.
+ *
+ *  The command
+ *  \code
+ *  ./scripts/parade.py --bots=bots.json --sims=sims.json --tracer-args=--out=trace.bot.json
+ *  \endcode
+ *  when run with the example configuration files will start up two
+ *  sltrace.exe processes, connect the bots to the sims kenilworth and
+ *  goodnight, and store the resulting trace data to trace.0.json and
+ *  trace.1.json.
+ *
+ *  <h3> Common Issues </h3>
+ *
+ *  <b>Disconnections:</b> Unfortunately, disconnections are
+ *  inevitable. Since traces are fixed duration, sltrace will try to
+ *  reconnect, with exponentially increasing back-off in the case of
+ *  failure.  There will be gaps in the data and some object
+ *  departures may be missed.  Further, sometimes redirections occur
+ *  when the sim cannot be reached.  sltrace attempts to mask these by
+ *  disconnecting and continuing the backoff.
+ */
