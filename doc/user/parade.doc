@@ -1,0 +1,62 @@
+/** \page parade Collecting Large Traces with Parade
+ *
+ *  Running more than one bot manually can be annoying and leaves you
+ *  with unsynchronized data.  A python script for automating this
+ *  process is provided in scripts/parade.py. Parade is designed to
+ *  let you deploy a large number of essentially identical bots,
+ *  changing only their starting locations and account information.
+ *  This is useful if you want to collect a trace from a region which
+ *  covers more than 1 sim server.
+ *
+ *  Parade uses two JSON configuration files to control deployment: a
+ *  description of the bot accounts and a description of the
+ *  deployment locations.
+ *
+ *  The bot file should contain a list of bot accounts, where each bot
+ *  account is a dict containing values for first name, last name, and
+ *  password. For example (bots.json):
+ *  \code
+ *   [
+ *    {
+ *     "first" : "myfirstname1",
+ *     "last" : "mylastname1",
+ *     "password" : "mypassword1"
+ *    },
+ *    {
+ *     "first" : "myfirstname2",
+ *     "last" : "mylastname2",
+ *     "password" : "mypassword2"
+ *    }
+ *   ]
+ *  \endcode
+ *  defines a collection of 2 bots.
+ *
+ *  The sim file should contain a list of secondlife:// URLs
+ *  specifying the starting locations of bots. For example (sims.json):
+ *  \code
+ *   [
+ *    "secondlife://kenilworth/127/121/0/",
+ *    "secondlife://goodnight/133/137/0/",
+ *    }
+ *   ]
+ *  \endcode
+ *  specifies two locations to start bots in.
+ *
+ *  Parade only has two command line arguments:
+ *   - bots - specifies the bots configuration file
+ *   - sims - specifies the sims configuration file
+ *  Any additional arguments are passed through to the invoked trace
+ *  processes, allowing the user to customize the trace just as they
+ *  would customize a single bot. A small amount of substitution in
+ *  arguments is possible to handle conflicting output files.
+ *
+ *  The command
+ *  \code
+ *  ./scripts/parade.py --bots=bots.json --sims=sims.json --tracer-args=--out=trace.bot.json
+ *  \endcode
+ *  when run with the example configuration files will start up two
+ *  sltrace.exe processes, connect the bots to the sims kenilworth and
+ *  goodnight, and store the resulting trace data to trace.0.json and
+ *  trace.1.json.
+ *
+ */

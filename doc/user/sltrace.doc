@@ -1,0 +1,65 @@
+/** \page sltrace Collecting a Trace with sltrace.exe
+ *
+ *  sltrace collects a trace from a single avatars perspective.  In
+ *  order to run sltrace, you must have an account registered with
+ *  Second Life.
+ *
+ *  \note You should let Second Life know that you are running your
+ *  avatar as a bot.  You can do this by logging into secondlife.com
+ *  and going to Account -> Scripted Agent Status.
+ *
+ *  A trace session is a single avatar, fixed duration connection to
+ *  Second Life. There are two important ways you can control how a
+ *  trace is executed: the controller and the tracer.
+ *
+ *  The controller specifies how the avatar moves around the world:
+ *  standing still, wandering, stopping periodically at waypoints,
+ *  etc.  Many users will be satisfied with a static controller (the
+ *  default), and this is also the most commonly used when deploying
+ *  multiple concurrent bots since it allows you to guarantee that all
+ *  sims you want to monitor are always covered.
+ *
+ *  The tracer specifies what information is stored.  While a raw
+ *  packet tracer is available, usually storing all data is
+ *  unnecessary.  For instance, a common use case is storing the
+ *  locations of objects over time to get coarse-grained mobility
+ *  information (the object-path tracer does just this).
+ *
+ *  You can currently specify one controller and one tracer (or use
+ *  the defaults).
+ *
+ *  Most options for collection are controlled via command line
+ *  arguments. Arguments are of the form --argname=argvalue.  The
+ *  following is a list of core arguments; required arguments are
+ *  marked as such and optional arguments with defaults have them
+ *  listed beside them.
+ *
+ *  - first -- first name of account to log in with (required)
+ *  - last -- last name of account to log in with (required)
+ *  - password -- password of account to log in with (required)
+ *
+ *  - url -- a secondlife protocol URL specifying starting location.  If omitted,
+ *           your avatar will start where you last logged out
+ *  - duration -- the time to run the trace for, e.g. 1h, 1m, 1s for 1 hour, 1
+ *         minute, and 1 second respectively (default: 5m).
+ *
+ *  - controller -- the controller to use for avatar movement. (default:
+ *                static-rotating)
+ *  - controller-args -- arguments to the controller. Valid values depend on the
+ *                type of controller.  (default: none)
+ *
+ *  - tracer -- tracer to instantiate, which controls what kind of trace is
+ *            generated. (default: object-path)
+ *  - tracer-args -- arguments to the tracer. Valid values depend on the type of
+ *                 tracer. (default:none)
+ *
+ *  <h2> Common Issues </h2>
+ *
+ *  <b>Disconnections:</b> Unfortunately, disconnections are
+ *  inevitable. Since traces are fixed duration, sltrace will try to
+ *  reconnect, with exponentially increasing back-off in the case of
+ *  failure.  There will be gaps in the data and some object
+ *  departures may be missed.  Further, sometimes redirections occur
+ *  when the sim cannot be reached.  sltrace attempts to mask these by
+ *  disconnecting and continuing the backoff.
+ */

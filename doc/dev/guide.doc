@@ -1,0 +1,10 @@
+/** \page devguide Developers Guide
+ *   - \ref design - Justification of the design of sltrace given that
+ *                   there are multiple ways to collect trace data
+ *                   from Second Life.
+ *   - \ref quirks - Discussion of difficulties encountered when
+ *                   collecting and analyzing data from Second Life,
+ *                   due to SL's design and quirks.
+ *   - \ref architecture - Description of the architecture of sltrace
+ *                   and how to extend it.
+ */

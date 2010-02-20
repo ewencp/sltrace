@@ -18,21 +18,8 @@
  *  aware of when extending it.  The developer guide also discusses
  *  general issues with collecting data from Second Life.
  *
- *  <h2> User Guide Contents </h2>
- *   - \ref userguide - Introduction to sltrace from a user perspective.
- *   - \ref sltrace - Guide for using sltrace to obtain single avatar
- *                    traces.
- *   - \ref scripts - A guide to the scripts that are provided for
- *                    working with raw trace files obtained from
- *                    sltrace.
- *
- *  <h2> Developer Guide Contents </h2>
- *   - \ref design - Justification of the design of sltrace given that
- *                   there are multiple ways to collect trace data
- *                   from Second Life.
- *   - \ref quirks - Discussion of difficulties encountered when
- *                   collecting and analyzing data from Second Life,
- *                   due to SL's design and quirks.
- *   - \ref architecture - Description of the architecture of sltrace
- *                   and how to extend it.
+ *   - \ref userguide - Guide for users that want to run sltrace to collect and
+ *                      analyze data from Second Life
+ *   - \ref devguide - Guide for developers that want to extend the core sltrace
+ *                      program or the analysis scripts
  */

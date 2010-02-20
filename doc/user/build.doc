@@ -1,0 +1,42 @@
+/** \page build Building SLTrace
+ *
+ *  <h2> Requirements </h2>
+ *
+ *  SLTrace depends on a few external libraries:
+ *   - sltrace.exe requires:
+ *    - Mono to build (http://mono-project.com, > 2.0)
+ *    - libomv to connect to SL (http://lib.openmetaverse.org, 0.7)
+ *
+ *   - The post-processing scripts require:
+ *    - Python (http://www.python.org, 2.6)
+ *    - JSON library for python (json or simplejson, simplejson suggested for
+ *      performance)
+ *    - matplotlib for graphing (http://matplotlib.sourceforge.net/)
+ *
+ *  All the scripting requirements are soft -- you can run sltrace and work with
+ *  the data without them, but some features of scripts (or some scripts
+ *  altogether) will not function.
+ *
+ *  <h2> Building SLTrace </h2>
+ *
+ *  All the dependencies except libomv are generally provided as
+ *  system packages. A script for building libomv and putting it in
+ *  its expected location is included in the deps directory.  If you
+ *  have svn, mono, and nant installed, run
+ *   \code
+ *   make deps
+ *   \endcode
+ *  from the top-level directory should properly install it. (It is
+ *  installed locally in the sltrace directory, root permissions are
+ *  not necessary). Note that the compile may not fully complete, but
+ *  as long as the library was built this is not a problem (the test
+ *  binaries are not used).
+ *
+ *  Assuming all dependencies are available, the top level Makefile
+ *  will build the sltrace binary.  Run
+ *   \code
+ *   make
+ *   \endcode
+ *  from the top-level directory.  If successful, you should find that
+ *  it has created sltrace/bin/sltrace.exe.
+ */
