@@ -4,9 +4,22 @@
  *
  *  <h3> Introduction </h3>
  *
+ *  SLTrace is a utility for collecting and analyzing trace data from Second
+ *  Life.  In order to be as flexible as possible as well as reduce the load on
+ *  Second Life, tracing and analysis are split into two steps.  In the first
+ *  step, the user specifies what data they want recorded and where in Second
+ *  Life to collect the data from.  In the second step, these raw traces are
+ *  loaded, cleaned up, and analyzed, either transforming it into a more useful
+ *  format (e.g. extracting movement of individual objects) or just presenting
+ *  summary data (e.g. number of objects, number of avatars, average object
+ *  sizes, etc).
+ *
+ *  This user guide covers the tools used for both of these steps, as well as
+ *  how to get the tools built.
+ *
  *  <h3> Table of Contents </h3>
  *  - \ref build
  *  - \ref sltrace
  *  - \ref parade
- *
+ *  - \ref analysis
  */
