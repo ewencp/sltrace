@@ -35,6 +35,7 @@
  *  specifying the starting locations of bots. For example (sims.json):
  *  \code
  *   [
+ *    {
  *    "secondlife://kenilworth/127/121/0/",
  *    "secondlife://goodnight/133/137/0/",
  *    }
