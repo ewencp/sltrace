@@ -1,0 +1,157 @@
+/** \page quirks Quirks in Second Life Trace Data
+ *
+ *  <h3> Introduction </h3>
+ *
+ *  Because data is collected through a Second Life client connection, we are
+ *  limited in the data received by how the server talks to clients.  There are
+ *  a number of quirks in how communication with Second Life clients work that
+ *  make it more difficult to get reliable trace data.  This section discusses
+ *  some of the major issues encountered in building the current trace tools,
+ *  and where relevant, explains why these are not an issue for the standard
+ *  client.
+ *
+ *  Note that these quirks are the reason for the two-pass approach to sltrace:
+ *  the first pass attempts to record all the information that will be useful in
+ *  computing the most accurate picture of the world at any given point during
+ *  the trace.  In some cases we use information "from the future" to infer the
+ *  state at a previous time.  By splitting into two phases, we attempt to make
+ *  the best use of all the information available.
+ *
+ *  <h3> Event Ordering </h3>
+ *
+ *  By far the most common problem encountered when collecting trace data from
+ *  Second Life is that the client protocol is based on a semi-reliable UDP
+ *  protocol, meaning that ordering of messages from the server is not
+ *  guaranteed.  This means that the effect an event has may depend on messages
+ *  that have not yet been received, making it extremely difficult to reason
+ *  about the system.  Further, it seems in some cases the server even takes
+ *  advantage of this, assuming that ordering isn't important.
+ *
+ *  An example where this is commonly a problem is with attachments and location
+ *  information.  Because these updates are reported separately and location is
+ *  reported relative to the parent object, this can cause the appearance of
+ *  wildly moving objects: a location update is received which is relative to
+ *  the parent, but the change in parent has not yet been received, causing the
+ *  object to appear to suddenly jump to a position near the origin.  Shortly
+ *  after, the parent update is received, making it appear as though the object
+ *  quickly jumped back to its correct location.
+ *
+ *  This lack of ordering is the primary reason for the two pass
+ *  approach. Without it, the tracing code would either have to maintain a lot
+ *  of state and try to back-propagate information, or it would be stuck storing
+ *  inaccurate data.
+ *
+ *  Often times, for the purposes of display, these problems aren't relevant:
+ *  the misorderings are usually local (i.e. only a couple of messages), the
+ *  results are not often visually obvious, and when they are, they are often
+ *  resolved in less than one frame.  In many cases, the human in the loop is
+ *  the limiting factor.  However, when trying to extract a precise list of
+ *  updates, it is not so obvious to the computer that something has gone wrong:
+ *  it is hard to disambiguate teleportation from update misorderings.
+ *
+ *  <h3> Prims and Objects </h3>
+ *
+ *  The basic object in Second Life is the prim, a primitive shape
+ *  (e.g. rectangular solid, cone, cylinder).  Each prim may have a script
+ *  associated with it, and can also have a parent to make it part of a larger
+ *  object.  (Note that in recent years, Second Life has also started supporting
+ *  sculpties, an image based representation of genus 0 objects.  Often these
+ *  objects will be closer to what most people would associate with an object
+ *  since it allows more complex shapes to be built with a single prim.
+ *  However, standard prim based objects still dominate the Second Life
+ *  landscape.)  Unfortunately, Second Life doesn't have a concept of a
+ *  semantically meaningful aggregate object.  Prims can be attached to other
+ *  prims to group them, but they can be added and removed arbitrarily.
+ *
+ *  Because most other systems don't provide access at the granularity of prims
+ *  (or use a different representation altogther, allowing for complex objects
+ *  to be represented easily via a single mesh description), using trace data
+ *  from Second Life in another system can be misleading.  For instance, just
+ *  using trace data of prims in Second Life to generate a layout of objects may
+ *  give misleading results since a prim is so lightweight compared to an
+ *  average object in another virtual world.
+ *
+ *  There's no perfect solution to this problem, and fully automating data
+ *  collection means we will have a few incorrect results.  Currently sltrace
+ *  stores data for all prims individually without trying to aggregrate at
+ *  collection time.  During analysis, a few key characteristics are taken into
+ *  account to try to determine whether a given prim should be considered the
+ *  root of an independent semantic object or if it is part of another object.
+ *  The process is described in the next section (since it involves another
+ *  tricky property, the parent prim).
+ *
+ *  Other solutions are possible as well, but won't be fully automated.  For
+ *  example, sltrace currently stores bounding region information but doesn't
+ *  store precise geometry descriptions or textures. If this data were stored as
+ *  well, an offline process could display collections of prims to the user and
+ *  have them label whole objects.  We currently use the fully automated
+ *  solution since it provides data that is good enough and isn't costly.
+ *
+ *  <h3> One Parent Expressing Multiple Relationships </h3>
+ *
+ *  Each prim in Second Life has a field for a parent object.  The problem from
+ *  a tracer's perspective is that this field conflates a number of different
+ *  relationships.  There are at least two important relationships that can be
+ *  expressed via the parent reference: ownership and physical attachment. Most
+ *  of the time, ownership implies physical connection, and indeed, any time the
+ *  parent reference is set, the object location is specified in that parent's
+ *  coordinate system.
+ *
+ *  From the perspective of trace data, the problem is that the parent reference
+ *  can change over time, making it difficult to identify what is really an
+ *  "object" in its own right.  Often, something we may consider an object will
+ *  attach itself to another object (or be attached) and then detach, making it
+ *  difficult to determine the set of independent objects.  Probably the most
+ *  common example is avatars sitting on an object (which causes the object to
+ *  become their parent).  This is easily resolved since we can identify avatars
+ *  as such and ignore those parent relationships except when computing
+ *  positions. Another common example is jewelry, weapons, and other
+ *  attachments.  In this case it is less clear whether the object should be
+ *  considered independently of the parent object, especially when it is only
+ *  connected for some of the time.  If we strictly choose one way or the other
+ *  (always connected implies it is not independent and sometimes connected
+ *  implies it is independent) we will always get some of both false positives
+ *  and false negatives.  Currently sltrace defaults to treating anything that
+ *  is at one point parent-less as an independent object, as well as handling
+ *  avatars as a special case.
+ *
+ *  Note that in this case the Second Life client doesn't have a problem with
+ *  this since it is just trying to display objects, not understand any semantic
+ *  relationships between prims and doesn't need to understand which collections
+ *  of prims are separate objects.
+ *
+ *  <h3> Prioritization </h3>
+ *
+ *  During a normal session, the Second Life server prioritizes the information
+ *  it sends to clients to improve their experience.  The easiest way to verify
+ *  this is to log in and continue looking straight.  As the element in the
+ *  client's field of view are completing loading, if the user turns around the
+ *  rest of the world outside that field of view will not have finished loading
+ *  yet.
+ *
+ *  This problem isn't only with loading, however.  The server will also reduce
+ *  the rate of updates, e.g. for position and animations, depending on the
+ *  relative location of the object being updated.  This means that traces for
+ *  objects not in the bot's field of view will be far less frequent than for
+ *  those objects in its field of view.
+ *
+ *  Again, there is no perfect solution to this problem.  Currently, how good
+ *  the data you get depends on the controller you use for your
+ *  avatar. Currently the default controller is the static rotating controller,
+ *  and generally this will perform best if the bot is place at a reasonable
+ *  vantage point near the center of a sim (to minimize the distance to objects
+ *  that are being observed).  In practice this works reasonably well with a
+ *  relatively slow rotation period, e.g. 60s, although in traces the variation
+ *  in update speed can be evident.  Currently our applications only require
+ *  relatively course mobility data, so this is sufficient.  If finer grained
+ *  data is needed, more extensive coverage of the sim with multiple bots may be
+ *  desirable.
+ *
+ *  Finally, the settings for libomv which control throttling are also set in a
+ *  way that attempts to maximize the quality of output. Since the bot doesn't
+ *  behave like a full client (specifically, it doesn't download textures unless
+ *  a tracer requests it) neither bandwidth nor computation on the bot are
+ *  usually a problem, so the extra load induced by the high throttling settings
+ *  aren't usually a problem.
+ *
+ */
