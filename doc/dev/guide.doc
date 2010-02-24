@@ -1,4 +1,12 @@
 /** \page devguide Developers Guide
+ *
+ *  This developers guide covers some of the design issues faced when building
+ *  SLTrace -- including the best approach to collecting trace data and quirks
+ *  found in raw trace data -- as well as the architecture of SLTrace and how to
+ *  extend it.
+ *
+ *  <h3> Table of Contents </h3>
+ *
  *   - \ref design - Justification of the design of sltrace given that
  *                   there are multiple ways to collect trace data
  *                   from Second Life.

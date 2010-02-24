@@ -1,0 +1,138 @@
+/** \page architecture SLTrace Architecture
+ *
+ *  The following describes the architecture of the core SLTrace program,
+ *  i.e. the component that records the core trace data.  Since SLTrace supports
+ *  pluggable trace types, analysis code is unique to each of them and thus
+ *  won't be described here.  This documentation is intended for those that want
+ *  to extend SLTrace's core tracing functionality.
+ *
+ *  <h3> TraceSession </h3>
+ *
+ *  The core component in SLTrace is the TraceSession, which is really a thin
+ *  wrapper around a GridClient from libopenmetaverse.  Each instance of sltrace
+ *  is a single session in Second Life.
+ *
+ *  Session in this context means a connection to a sim for a user specified
+ *  duration of time.  Note that this is not the same as a normal session in
+ *  Second Life -- it may involve reconnects and currently assumes a relatively
+ *  static bot, i.e. that reconnections should be attempted to the sim
+ *  originally requested.
+ *
+ *  By default, most features are turned off to minimize the load on the bot and
+ *  the server for a given trace.  The TraceSession attempts to handle
+ *  session management automatically, gracefully, and politely.  It does its
+ *  best to minimize the amount of lost time, but backs off upon failed
+ *  reconnects to avoid hammering the Second Life servers.
+ *
+ *  <h3> IController </h3>
+ *
+ *  Aside from session management, the core TraceSession doesn't do much of
+ *  anything.  It will just keep your avatar in the worlds sitting still. To
+ *  control what the avatar observes (beyond just setting its starting
+ *  location), the the user can specify a controller, which must implement the
+ *  IController interface.
+ *
+ *  The IController interface is updated once a second and may update the
+ *  position of the  .
+ *
+ *  Note that the TraceSession intentionally exposes all the underlying
+ *  libopenmetaverse data to the IController. This gives the controller as much
+ *  flexibility as possible, both in the actual control the avatar (e.g. whether
+ *  to manually control all movement or use the automated methods that come with
+ *  libopenmetaverse), as well as in responding to the world around it.  A
+ *  complicated controller might register for additional events so it could
+ *  modify its behavior based on its surroundings.  For instance, it might
+ *  listen for properties of objects and specifically choose to follow avatars
+ *  to maximize the avatar mobility data it collects.
+ *
+ *  <h4> Adding IControllers </h4>
+ *
+ *  Currently all IControllers are built into the main binary.  Simply implement
+ *  the IController interface, register your implementation with the
+ *  ControllerFactory in Main.cs, and add it to the build using the Makefile.
+ *
+ *  <h3> ITracer </h3>
+ *
+ *  ITracer is the interface intended to support collecting actual trace data.
+ *  Generally these are inactive in that they are just observing and recording
+ *  events. (However, it is fine for them to be active, especially in order to
+ *  do things like request additional properties, updates, and assets.)
+ *
+ *  The ITracer interface also exposes the core underlying libopenmetaverse
+ *  objects, giving full access to their events.  In fact, that is really all it
+ *  provides besides notification of the beginning and end of trace sessions.
+ *
+ *  Usually an ITracer has 3 responsibilities.  First, when it is told that the
+ *  trace is starting, it should do any setup (e.g. open and start writing a
+ *  trace file) and register for events it is interested in using
+ *  libopenmetaverse.  For example, to collect a list of all avatars seen during
+ *  a run, the tracer might open a trace file, start writing a JSON list to it,
+ *  and register for ObjectManager.OnNewAvatar events.
+ *
+ *  Second, during the run it should respond to the events it registered for.
+ *  In the above example, a callback would be triggered every time a new avatar
+ *  is observed (where new means not currently in the working set, not
+ *  necessarily new for the entire session; see the libopenmetaverse
+ *  documentation for details). The tracer might check a set of already seen
+ *  avatars for the new avatars ID, and if not seen, store it out to the JSON
+ *  trace file and add it to the already seen set.
+ *
+ *  Finally, when the TraceSession is shutting down, the ITracer will be
+ *  notified and should perform any cleanup and shutdown required.  Usually
+ *  cleaning up any non-libopenmetaverse resources is sufficient.  In the
+ *  example above, we would close out the JSON list and close the trace file.
+ *
+ *  <h4> Adding ITracers </h4>
+ *
+ *  Currently all ITracers are built into the main binary.  Simply implement the
+ *  ITracer interface, register your implementation with the TracerFactory in
+ *  Main.cs, and add it to the build using the Makefile.
+ *
+ *  <h3> Why separate IController and ITracer? </h3>
+ *
+ *  Initially, IController and ITracer were going to be a single interface which
+ *  controlled both bot movement and the data traced.  Ultimately this resulted
+ *  in either duplicated code or simply a lot of delegation since the controller
+ *  is frequently the same (stay static but get good coverage of views) but the
+ *  data to be collected is different.
+ *
+ *  Separating the two makes the code cleaner and allows trivial reuse of the
+ *  controller code.  No tracers are affected because currently none of them
+ *  require adjusting movement to the bot's surroundings -- all controllers'
+ *  actions are predetermined.
+ *
+ *  In the event that a tighter binding of controller and tracer is needed, a
+ *  null version of either can be loaded and all functionality moved into the
+ *  other.  Because the underlying libopenmetaverse objects are exposed to both,
+ *  this is trivial.
+ *
+ *  <h3> Utilities </h3>
+ *
+ *  There are a number of utilities provided with SLTrace to make the developers
+ *  life easier.
+ *
+ *  <b> Arguments: </b> All pluggable components in SLTrace can accept an
+ *  argument string to control their behavior, and these are exposed on the
+ *  command line as well.  Since a raw string is not the most convenient form
+ *  for arguments but necessary to simplify passing arguments through the
+ *  SLTrace command line, some utilities are provided for parsing arguments of
+ *  the standard form into a dictionary of options and their values, both as
+ *  strings.  See Arguments.cs for details, and any of the IControllers or
+ *  ITracers for usage.
+ *
+ *  <b> JSON: </b> Where possible, it is encouraged that the output of traces be
+ *  stored as JSON files.  Sometimes this might not be possible (very large
+ *  amounts of trace data, need to serialize complex graph data structures,
+ *  etc).  However, where possible, this allows just about anybody to get access
+ *  to the data.  All the core tracers store their data to JSON files and the
+ *  core analysis code works with JSON input files.
+ *
+ *  To make this simpler, a JSON serializer class is provided.  It provides an
+ *  interface for generating a JSON file from procedural code and supports all
+ *  the JSON elements and properly escapes string data.  It also does a small
+ *  amount of sanity checking to ensure you do not generate an invalid
+ *  file. NOTE that it is not thread-safe and libopenmetaverse will generate
+ *  callbacks on multiple threads.  Therefore, to use a single trace file, be
+ *  sure to lock the JSON object before using it.
+ *
+ */
