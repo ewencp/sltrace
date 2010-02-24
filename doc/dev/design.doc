@@ -1,0 +1,100 @@
+/** \page design Design of SLTrace
+ *
+ *  There are at least 3 ways of collecting trace data from Second Life: using
+ *  scripted prims, an augmented viewer, and a text-based bot viewer.  SLTrace
+ *  uses a text-based bot viewer because it gives a good balance of the amount
+ *  and quality of trace data that can be collected and the level of
+ *  automation.  The following describes the 3 approaches and their tradeoffs.
+ *
+ *  <h3> Scripted Prims </h3>
+ *
+ *  In the scripted prims approach, a logging script is written for prims and a
+ *  number of prims are created around the region to be logged.
+ *
+ *  One important benefit of this, which is important but usually ignored, is
+ *  that this approach is relatively inexpensive from the Second Life server's
+ *  perspective. Server's can handle many thousands of prims, and these scripts
+ *  are usually sampling relatively infrequently, maybe a once a second. The API
+ *  for scripts is designed to keep any individual prim relatively lightweight
+ *  so a server can handle a large number of scripted prims.
+ *
+ *  Unfortunately, the lightweight API calls are also the major drawback to this
+ *  approach.  One of the motivating applications of SLTrace was to collect
+ *  mobility information for a large number of objects.  In order to keep
+ *  proximity queries lightweight, at most 16 prims will be returned with any
+ *  single query.  Further, there is no control over which will be returned, so
+ *  even selecting a small subset of objects and tracking them doesn't seem to
+ *  be possible.  To get good coverage would require deploying a large number of
+ *  scripted prims, and depending on the density of prims, it would be very easy
+ *  for them to interfere with each other.  For any given area, it wouldn't be
+ *  obvious what the appropriate number of trace prims to instantiate would be.
+ *
+ *  Finally, scripted prims don't have a trivial way to store out the trace
+ *  data. Scripts are able to get data in and out of SL in a few ways.  Probably
+ *  the most straightforward is to periodically log the data using web
+ *  requests.  This requires setting up a publically accessible webserver in
+ *  order to actually collect the data.  Also, because of rate limiting, it
+ *  requires careful consideration of when to log trace data back to the web
+ *  server.
+ *
+ *  <h3> Augmented Viewer </h3>
+ *
+ *  Both of the remaining approaches use a client connection to Second Life to
+ *  collect trace data.  The first approach just modifies the regular viewer to
+ *  record any of the trace data needed.
+ *
+ *  One obvious benefit to this approach is that it can be used to collect
+ *  realistic first-person trace data -- what did the user actually see as they
+ *  moved through the world.  This could be useful for generating realistic
+ *  traffic patterns for a client connection.  It also provides a much greater
+ *  amount of information than scripted prims -- many more objects are reported
+ *  to clients than to scripts and more information about them is available, for
+ *  example their actual geometry.
+ *
+ *  Of course, using a modified client also requires that an actual user be
+ *  working the controls or that avatar movement be scripted.
+ *
+ *  The fact that the data is from a client's view can also be a drawback.  Most
+ *  significantly, Second Life servers prioritize updates based on the clients
+ *  point of view.  This means many more updates are provided for objects in
+ *  front of the avatar than for objects to it's side and back. To collect
+ *  reasonable data for all objects surrounding an avatar, the controller
+ *  (whether human or computer) must be careful to give equal attention to all
+ *  objects.
+ *
+ *  The standard viewer also does a lot of work which may not be necessary in
+ *  order to collect the trace data.  For one, it actually displays the world.
+ *  It needs to generate prim meshes, download textures, and display the world
+ *  at 30fps or faster.  It also needs to collect a lot of other potentially
+ *  uninteresting information, such as information about the terrain, sky and
+ *  weather, and so on.  All of this puts a lot of additional load on the
+ *  computer running the bot, and also requires display, i.e. it cannot be run
+ *  headless.
+ *
+ *  <h3> Bot Viewer </h3>
+ *
+ *  The final option, and the one SLTrace uses, is to use an alternative Second
+ *  Life client which behaves like a client and allows the user to intercept
+ *  events programmatically, but doesn't actually do any display or user
+ *  interface. For SLTrace, libopenmetaverse serves this purpose.
+ *
+ *  Generally, this approach has the benefits of the augmentented viewer but far
+ *  fewer of its drawbacks.
+ *
+ *  Control of the avatar is easily scripted, so it doesn't require a real
+ *  user.  It still requires a control plan which does a good job of surveying
+ *  the region it is covering (i.e. giving all objects equal attention).  The
+ *  library has controls to disable extraneous information, so both network load
+ *  and CPU load are minimized.  Everything is performed programmatically and
+ *  the only "display" is textual.  A single node can easily handle multiple
+ *  trace bots.
+ *
+ *  One of the major drawbacks of this approach is that it can't take advantage
+ *  of all the existing code in the regular viewer which handles many of the
+ *  oddities of the raw Second Life protocol.  Clearly the viewer must handle at
+ *  least some of these to successfully display the world.  However, since most
+ *  of these problems can be handled in the analysis stage (after raw trace data
+ *  is collected), and in some cases doing so actually results in better final
+ *  data, this is an acceptable tradeoff for the above advantages.
+ *
+ */
