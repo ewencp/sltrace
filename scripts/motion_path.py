@@ -2,6 +2,7 @@
 
 import sys
 import vec3
+import bisect
 
 class MotionPath:
     """
@@ -13,35 +14,32 @@ class MotionPath:
 
     def __init__(self, start, points=None):
         self.start = start
-        self._points = points
-        if not self._points:
-            self._points = []
-
-    def __iter__(self):
-        return self._points.__iter__()
+        self._timestamps, self._points = zip(*points)
 
     def __getitem__(self,key):
-        return self._points[key]
+        return (self._timestamps[key], self._points[key])
 
     def __len__(self):
         return len(self._points)
 
     def waypoints(self):
-        return self._points
+        return zip(self._timestamps, self._points)
+
+    def waypoints_iter(self):
+        for idx in range(len(self)):
+            yield self[idx]
 
     def timestamps(self):
-        return [ts for ts,p in self._points]
+        return self._timestamps
 
     def points(self):
-        return [p for ts,p in self._points]
+        return self._points
 
     def start_time(self):
-        first_update_t,first_update_pos = self._points[0]
-        return first_update_t
+        return self._timestamps[0]
 
     def end_time(self):
-        last_update_t,last_update_pos = self._points[-1]
-        return last_update_t
+        return self._timestamps[-1]
 
     def squeeze(self, fudge=0.0):
         """
@@ -58,13 +56,16 @@ class MotionPath:
         if fudge > 0.0: equals_func = vec3.create_delta_equals(fudge)
 
         last = None
+        new_timestamps = []
         new_points = []
-        for time,point in self._points:
+        for time,point in self.waypoints_iter():
             if equals_func(point, last): continue
 
-            new_points.append( (time,point) )
+            new_timestamps.append(time)
+            new_points.append(point)
             last = point
 
+        self._timestamps = new_timestamps
         self._points = new_points
         return self
 
@@ -76,17 +77,25 @@ class MotionPath:
         """
 
         # Standard bounds checks
-        first_update_t,first_update_pos = self._points[0]
+        first_update_t,first_update_pos = self[0]
         if t <= first_update_t: return first_update_pos
 
-        last_update_t,last_update_pos = self._points[-1]
+        last_update_t,last_update_pos = self[-1]
         if t >= last_update_t: return last_update_pos
 
         # Otherwise, find the right pair of updates
-        prev_t,prev_pos = self._points[0]
-        for cur_t,cur_pos in self._points:
+
+        # Start the search on the first element where t >= timestamp to satisfy t >= prev_t
+        start_idx = bisect.bisect_left(self.timestamps(), t) - 1
+        assert start_idx >= 0
+
+        prev_t,prev_pos = self[start_idx]
+        for idx in range(start_idx+1,len(self)):
+            cur_t,cur_pos = self[idx]
             if t >= prev_t and t < cur_t:
                 alpha = float(t - prev_t) / float(cur_t - prev_t)
                 return vec3.add(vec3.scale(cur_pos, alpha), vec3.scale(prev_pos, (1.0 - alpha)))
 
             prev_t,prev_pos = cur_t,cur_pos
+
+        print t, self.timestamps(), start_idx

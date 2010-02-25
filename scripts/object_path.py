@@ -556,7 +556,7 @@ class ObjectPathTrace:
 
     def sim_motions(self, objids):
         results = {}
-        for objid,obj_results in self.sim_motions_iter(objids):
+        for objid,obj_result in self.sim_motions_iter(objids):
             results[objid] = obj_result
         return results
 
