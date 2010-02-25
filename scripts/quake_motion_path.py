@@ -22,15 +22,13 @@ def main():
     output_dir = os.curdir
     if len(sys.argv) > 2: output_dir = sys.argv[2]
 
+
     trace = ObjectPathTrace(sys.argv[1])
     trace.fill_parents(report=True)
-
-    motions = trace.sim_motions(trace.roots())
-
-    pb = ProgressBar(len(motions))
+    pb = ProgressBar(len(trace.roots()))
 
     obj_count = 0
-    for objid,mots in motions.items():
+    for objid,mots in trace.sim_motions_iter(trace.roots()):
         # above the actual output to ensure it gets updated
         obj_count += 1
         pb.update(obj_count)
