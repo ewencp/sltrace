@@ -321,6 +321,75 @@ class ObjectPathTrace:
 
         return all_children_dict
 
+    def clusters(self):
+        """
+        Returns a list of lists of objects which are related to each
+        other and therefore must be considered together during
+        analysis.  Currently the only relationship considered is
+        parenthood, but in its strictest sense (not just ownership,
+        but also attachment, which is required in order to get
+        reliable motion data).
+
+        Each sublist is guaranteed to be disjoint from all other
+        sublists.
+        """
+
+        self.fill_parents()
+
+        # Our approach is to build up a graph of related objects and
+        # then use that graph to isolate connected components as our
+        # resulting subsets.
+
+        # We'll maintain the neighbor graph as adjacency lists
+        neighbor_graph = {}
+
+        # Some graph helpers...
+        def add_vertex(a):
+            if a not in neighbor_graph: neighbor_graph[a] = set()
+
+        def add_edge(a, b):
+            add_vertex(a)
+            add_vertex(b)
+            neighbor_graph[a].add(b)
+            neighbor_graph[b].add(a)
+
+        # Generate edges based on parent connections, set of all objs
+        for evt in self.addition_events():
+            child_id = UUID(evt['id'])
+            add_vertex(child_id)
+            if 'parent' not in evt: continue
+            parent_id = UUID(evt['parent'])
+            # Add edges in both directions for efficiency
+            add_edge(child_id, parent_id)
+            add_edge(parent_id, child_id)
+
+        # Get set of connected objects, including r
+        def get_connected(r):
+            considered = set()
+            to_consider = set()
+            to_consider.add(r)
+
+            while len(to_consider) > 0:
+                considering = to_consider.pop()
+                considered.add(considering)
+
+                for connected in neighbor_graph[considering]:
+                    if connected not in considered: to_consider.add(connected)
+
+            # Our result is just all the nodes we considered...
+            return considered
+
+        # Pick out random elements, compute connected component, and remove those elements
+        results = []
+        unaccounted = set(neighbor_graph.keys())
+        while len(unaccounted) > 0:
+            r = unaccounted.pop()
+            conn_comp = get_connected(r)
+            unaccounted = unaccounted - conn_comp
+            results.append(conn_comp)
+
+        return results
+
     def sizes(self):
         """
         Extract the sizes of each prim in the trace, returning a dict
