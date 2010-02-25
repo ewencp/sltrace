@@ -147,26 +147,32 @@ class ObjectPathTrace:
         """
         if self._filled_parents: return
 
-        unfilled_parent_events = [x for x in self.addition_events()
-                                  if 'parent' not in x and
-                                  'parent_local' in x]
-
         # Bucket by local parent id in order to do lookups
         unfilled_by_parentid = {}
-        for x in unfilled_parent_events:
+        for x in self.addition_events():
+            if 'parent' in x or 'parent_local' not in x: continue
             if x['parent_local'] not in unfilled_by_parentid:
                 unfilled_by_parentid[x['parent_local']] = []
             unfilled_by_parentid[x['parent_local']].append(x)
 
+        # Extract per-parent-id list of events
+        parent_additions = {}
+        for x in self.addition_events():
+            if x['local'] not in unfilled_by_parentid: continue
+            if x['local'] not in parent_additions: parent_additions[x['local']] = []
+            parent_additions[x['local']].append(x)
+
         # For each parent id, try to find the nearest and fill in the events
         no_options = 0
         for parentid,events in unfilled_by_parentid.items():
-            candidate_parents = [x for x in self.addition_events()
-                                 if x['local'] == parentid]
+            if parentid not in parent_additions:
+                candidate_parents = None
+            else:
+                candidate_parents = parent_additions[parentid]
 
             for evt in events:
                 added_time = parse_time(evt['time'])
-                if len(candidate_parents) == 0:
+                if candidate_parents == None:
                     no_options += 1
                     continue
                 best_candidate = min(candidate_parents, key=lambda x:(parse_time(x['time'])-added_time))
