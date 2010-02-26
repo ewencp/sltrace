@@ -25,29 +25,37 @@ def main():
 
     trace = ObjectPathTrace(sys.argv[1])
     trace.fill_parents(report=True)
-    pb = ProgressBar(len(trace.roots()))
+    roots = trace.roots()
+
+    pb = ProgressBar(len(roots))
+
+    trace_subsets = trace.clusters()
+    subtraces = trace.subset_traces(trace_subsets)
 
     obj_count = 0
-    for objid,mots in trace.sim_motions_iter(trace.roots()):
-        # above the actual output to ensure it gets updated
-        obj_count += 1
-        pb.update(obj_count)
-        pb.report()
+    for subtrace in subtraces:
+        subtrace_roots = subtrace.roots()
 
-        for mot in mots:
-            mot.squeeze(fudge=.05)
+        for objid,mots in subtrace.sim_motions_iter(subtrace_roots):
+            # above the actual output to ensure it gets updated
+            obj_count += 1
+            pb.update(obj_count)
+            pb.report()
 
-        num_updates = sum( [ len(mot) for mot in mots ] )
-        if num_updates <= 1: continue
-
-        outfilename = os.path.join(output_dir, str(objid) + '.txt')
-        idx = 1
-        with open(outfilename, 'w') as fout:
             for mot in mots:
-                for t,pos in mot:
-                    # note that we flip y and z to go from SL coords -> meru coords
-                    line = "%d: %f, %f, %f, %d" % (idx, pos[0], pos[2], pos[1], int(t*1000))
-                    print >>fout, line
+                mot.squeeze(fudge=.05)
+
+            num_updates = sum( [ len(mot) for mot in mots ] )
+            if num_updates <= 1: continue
+
+            outfilename = os.path.join(output_dir, str(objid) + '.txt')
+            idx = 1
+            with open(outfilename, 'w') as fout:
+                for mot in mots:
+                    for t,pos in mot:
+                        # note that we flip y and z to go from SL coords -> meru coords
+                        line = "%d: %f, %f, %f, %d" % (idx, pos[0], pos[2], pos[1], int(t*1000))
+                        print >>fout, line
 
     pb.finish()
 

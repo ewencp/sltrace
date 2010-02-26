@@ -102,6 +102,35 @@ class ObjectPathTrace:
                          if 'id' in x and UUID(x['id']) == objid]
         return ObjectPathTrace(raw=object_subset, start_time=self._start_time)
 
+    def subset_traces(self, obj_sets):
+        """
+        Returns new ObjectPathTraces containing subsets of the
+        original events, containing only events pertaining to the
+        specified set of objects.
+        """
+
+        # Generate reverse index of membership
+        obj_groups = {}
+        for idx,obj_set in zip(range(len(obj_sets)), obj_sets):
+            for obj in obj_set:
+                obj_groups[obj] = idx
+
+        group_events = []
+        for x in range(len(obj_sets)): group_events.append([])
+        for x in self._orig:
+            if 'id' not in x: continue
+            evt_id = UUID(x['id'])
+            # sometimes we get events for which no object had been added
+            if evt_id not in obj_groups: continue
+            group = obj_groups[evt_id]
+            group_events[group].append(x)
+
+        result_traces = []
+        for evt_list in group_events:
+            result_traces.append(
+                ObjectPathTrace(raw=evt_list, start_time=self._start_time)
+                )
+        return result_traces
 
     def events(self):
         """Returns a list of all the events in this trace."""
