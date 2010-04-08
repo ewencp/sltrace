@@ -20,7 +20,7 @@ def len2(v):
     return v[0]*v[0] + v[1]*v[1] + v[2]*v[2]
 
 def len(v):
-    return math.sqrt(len(v))
+    return math.sqrt(len2(v))
 
 def dist(v1, v2):
     return len((v1[0]-v2[0],v1[1]-v2[1],v1[2]-v2[2]))
