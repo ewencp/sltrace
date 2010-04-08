@@ -1,33 +1,42 @@
 #!/usr/bin/python
 
-# quake_motion_path.py input_trace_file [output_dir]
+# quake_motion_path.py input_trace_file [output_filename] [xoff] [yoff]
 #
-# Generates motion path files in the same format as the Quake motion
-# path files used in CBR. Each motion path is stored in a file named
-# by the object UUID, stored in the specified output directory, or the
-# current working directory if one isn't specified.
+# Generates a motion path file in the same format as the Quake motion
+# path files used in CBR. You may optionally specify the output
+# filename and a fixed x and y offset Each motion path is stored in a
+# file named by the object UUID, stored in the specified output
+# directory, or the current working directory if one isn't specified.
 
 import sys
 import os, os.path
+import math
+import vec3
 from motion_path import MotionPath
 from object_path import ObjectPathTrace
 from util.progress_bar import ProgressBar
 
+def _get_option_or_default(idx, default):
+    if len(sys.argv) < idx+1:
+        return default
+    return sys.argv[idx]
+
 def main():
     if len(sys.argv) < 2:
-        print "Specify a file."
+        print "Input file must be specified."
         return -1
 
-    trace_file = sys.argv[1]
-    output_dir = os.curdir
-    if len(sys.argv) > 2: output_dir = sys.argv[2]
+    trace_file = sys.argv[1]      #input trace file
+    output_filename = _get_option_or_default(2, 'quake.txt')
+    xoffset = int(_get_option_or_default(3, 0)) # uniform x translation
+    yoffset = int(_get_option_or_default(4, 0)) # uniform y translation
 
-
-    trace = ObjectPathTrace(sys.argv[1])
+    trace = ObjectPathTrace(trace_file)
     trace.fill_parents(report=True)
-    roots = trace.roots()
+    pb = ProgressBar(len(trace.roots()))
+    obj_sizes = trace.aggregate_sizes()
 
-    pb = ProgressBar(len(roots))
+    fout = open(output_filename,'w')
 
     trace_subsets = trace.clusters()
     subtraces = trace.subset_traces(trace_subsets)
@@ -42,21 +51,22 @@ def main():
             pb.update(obj_count)
             pb.report()
 
+            idx = 0
             for mot in mots:
+                num_updates = sum( [ len(mot) for mot in mots ] )
                 mot.squeeze(fudge=.05)
+                #if num_updates <= 1: continue
 
-            num_updates = sum( [ len(mot) for mot in mots ] )
-            if num_updates <= 1: continue
+                for t,pos in mot:
+                    # note that we flip y and z to go from SL coords -> meru coords
 
-            outfilename = os.path.join(output_dir, str(objid) + '.txt')
-            idx = 1
-            with open(outfilename, 'w') as fout:
-                for mot in mots:
-                    for t,pos in mot:
-                        # note that we flip y and z to go from SL coords -> meru coords
-                        line = "%d: %f, %f, %f, %d" % (idx, pos[0], pos[2], pos[1], int(t*1000))
-                        print >>fout, line
+                    bbox = obj_sizes[objid]
+                    bbox_rad = vec3.dist(bbox[0], bbox[1])/2.0
+                    line = "%s: %f, %f, %f, %d, %f" % (str(objid), xoffset+pos[0], yoffset+pos[1], pos[2], int(t*1000), bbox_rad)
+                    print >>fout, line
+                    idx += 1
 
+    fout.close()
     pb.finish()
 
     return 0
