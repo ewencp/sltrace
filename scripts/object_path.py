@@ -480,6 +480,7 @@ class ObjectPathTrace:
             # radius for each sub object, which is distance
             # (parent_center, child_center) + child radius.
             for child in children:
+                if (child not in first_updates): continue
                 child_update = first_updates[child]
                 child_offset = parse_vec3(child_update['pos'])
                 child_bbox_min,child_bbox_max = obj_sizes[child]
