@@ -16,20 +16,16 @@ from motion_path import MotionPath
 from object_path import ObjectPathTrace
 from util.progress_bar import ProgressBar
 
-def _get_option_or_default(idx, default):
-    if len(sys.argv) < idx+1:
+def _get_option_or_default(args, idx, default):
+    if len(args) < idx+1:
         return default
-    return sys.argv[idx]
+    return args[idx]
 
-def main():
-    if len(sys.argv) < 2:
-        print "Input file must be specified."
-        return -1
-
-    trace_file = sys.argv[1]      #input trace file
-    output_filename = _get_option_or_default(2, 'quake.txt')
-    xoffset = int(_get_option_or_default(3, 0)) # uniform x translation
-    yoffset = int(_get_option_or_default(4, 0)) # uniform y translation
+def generate_quake_motion_path(args):
+    trace_file = args[0]      #input trace file
+    output_filename = _get_option_or_default(args, 1, 'quake.txt')
+    xoffset = int(_get_option_or_default(args, 2, 0)) # uniform x translation
+    yoffset = int(_get_option_or_default(args, 3, 0)) # uniform y translation
 
     trace = ObjectPathTrace(trace_file)
     trace.fill_parents(report=True)
@@ -70,6 +66,13 @@ def main():
     pb.finish()
 
     return 0
+
+def main():
+    if len(sys.argv) < 2:
+        print "Input file must be specified."
+        return -1
+
+    generate_quake_motion_path(sys.argv[1:])
 
 if __name__ == "__main__":
     sys.exit(main())
