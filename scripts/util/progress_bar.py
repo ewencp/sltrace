@@ -29,7 +29,11 @@ class ProgressBar:
             (pct_string + self.prog_bar[pct_place + len(pct_string):])
 
     def update(self, finished):
-        self.__update_amount((finished / float(self.duration)) * 100.0)
+        if (self.duration != 0):
+            frac = (finished / float(self.duration))
+        else:
+            frac = 0
+        self.__update_amount(frac * 100.0)
         self.prog_bar += '  %d/%s' % (finished, self.duration)
 
     def report(self, fp=None):
