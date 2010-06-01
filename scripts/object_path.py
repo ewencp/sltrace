@@ -50,7 +50,11 @@ class ObjectPathTrace:
 
         # Get raw data
         if raw: self._orig = raw
-        elif trace_file: self._orig = json.load(open(trace_file))
+        elif trace_file:
+            try:
+                self._orig = json.load(open(trace_file))
+            except ValueError:
+                self._orig = []
         else: self._orig = []
         # Filter and set start time from data. If specified, override with
         # user start time
